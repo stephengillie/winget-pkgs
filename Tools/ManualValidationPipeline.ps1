@@ -10,6 +10,8 @@
 #3.2.1 Add automation for processing GitHub diff'd PRs, and improve automation for processing individual files into a manifest.
 
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Console application. Outputs have been manually suppressed where desired.')]
+# The Param block is needed for PSScriptAnalyzer to properly scope it's rules
+param()
 
 $build = 513
 $appName = 'Manual Validation'
@@ -94,7 +96,7 @@ Function Get-AutoValLog {
 			if ($DemoMode) {
 				Write-Host "PR: $PR - DemoMode: Created"
 			} else {
-				$out = Reply-ToPR -PR $PR -Body $UserInput
+				$out = Push-PRReply -PR $PR -Body $UserInput
 				Write-Host "PR: $PR - $out"
 			}
 		} else {
@@ -242,7 +244,7 @@ Function Add-PRLabel {
 	Invoke-GitHubPRRequest -PR $PR -Method $Method -Type 'labels' -Data $Label
 }
 
-Function Update-PR {
+Function Edit-PR {
 	param(
 		$PR,
 		[string]$Title = '',
@@ -269,7 +271,7 @@ Function Update-PR {
 	Start-Sleep $GitHubRateLimitDelay;
 }
 
-Function Reply-ToPR {
+Function Push-PRReply {
 	param(
 		$PR,
 		[string]$UserInput,
@@ -311,12 +313,12 @@ Function Set-GitHubPreset {
 		}
 	}
 
-	Reply-ToPR -PR $PR -CannedResponse $CannedResponse -UserInput $UserName
+	Push-PRReply -PR $PR -CannedResponse $CannedResponse -UserInput $UserName
 	Invoke-GitHubPRRequest -PR $PR -Method POST -Type labels -Data $Data
 }
 
 #PR Watcher GitHub tools.
-Function Check-PRInstallerStatusInnerWrapper {
+Function Get-PRInstallerStatusInnerWrapper {
 	param(
 		$PR,
 		$Pull = (Invoke-GitHubPRRequest $PR -Type files -Output content -JSON),
@@ -328,12 +330,12 @@ Function Check-PRInstallerStatusInnerWrapper {
 	return $Code
 }
 
-Function Check-PRInstallerStatus {
+Function Get-PRInstallerStatus {
 	param(
 		$PR
 	)
 	$out = ''
-	try { $out = 'Status Code: ' + (Check-PRInstallerStatusInnerWrapper $PR) }catch { $out = $error[0].Exception.Message }
+	try { $out = 'Status Code: ' + (Get-PRInstallerStatusInnerWrapper $PR) }catch { $out = $error[0].Exception.Message }
 	$out = $out + "`n`n(Automated message - build $build)"
 	return $out
 }
@@ -383,13 +385,13 @@ Function Get-WinGetFile {
 	return $content
 }
 
-Function Check-FileExist {
+Function Test-File {
 	param(
 		$PackageIdentifier,
 		$Version,
 		$Type
 	)
-	$content = Get-WinGetFile $PackageIdentifier $Version $Type
+	$content = Get-WinGetFile -PackageIdentifier $PackageIdentifier -Version $Version -Type $Type
 	if ($content -ne 'Error') { $true } else { $false }
 }
 
@@ -422,9 +424,9 @@ Function Get-TrackerVMValidate {
 		#Break;
 	}
 	if ($Silent) {
-		Get-TrackerVMSetStatus 'Prevalidation' $vm $PackageIdentifier $PR -Silent
+		Get-TrackerVMSetStatus -Status 'Prevalidation' -VM $vm -Package $PackageIdentifier -PR $PR -Silent
 	} else {
-		Get-TrackerVMSetStatus 'Prevalidation' $vm $PackageIdentifier $PR
+		Get-TrackerVMSetStatus -Status 'Prevalidation' -VM $vm -Package $PackageIdentifier -PR $PR
 	}
 	if ((Get-VM "vm$vm").state -ne 'Running') { Start-VM "vm$vm" }
 	if ($PackageIdentifier -eq '') {
@@ -755,7 +757,7 @@ Function Complete-TrackerVM {
 	Stop-Process -Id ((Get-ConnectedVM) | Where-Object { $_.VM -match "vm$vm" }).id -ErrorAction Ignore
 	Stop-TrackerVM $vm
 	Get-RemoveFileIfExist $filesFileName
-	Get-TrackerVMSetStatus 'Ready' $vm ' ' 1
+	Get-TrackerVMSetStatus -Status 'Ready' -VM $vm -Package ' ' -PR 1
 }
 
 Function Get-PipelineVmGenerate {
@@ -965,7 +967,7 @@ Function Get-TrackerVMCycle {
 				Get-PipelineVmGenerate -OS $VM.os
 			}
 			'SendStatus' {
-				Reply-ToPR -PR $VM.PR -UserInput (Get-SharedError -NoClip) -CannedResponse ManValEnd
+				Push-PRReply -PR $VM.PR -UserInput (Get-SharedError -NoClip) -CannedResponse ManValEnd
 				Get-TrackerVMSetStatus 'Complete' $VM.vm
 			}
 			default {
@@ -1478,6 +1480,7 @@ Function Get-CannedResponse {
 }
 
 Function Get-PRApproval {
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'PackageIdentifier', Justification = 'The variable is used in a conditional but ScriptAnalyser does not recognize the scope')]
 	param(
 		$Clip = (Get-Clipboard),
 		[int]$PR = (($Clip -split '#')[1]),
@@ -1487,9 +1490,9 @@ Function Get-PRApproval {
 		[switch]$DemoMode
 	)
 	if ($DemoMode) {
-		Write-Host "DemoMode: Reply-ToPR $pr requesting approval from @$Approver."
+		Write-Host "DemoMode: Push-PRReply $pr requesting approval from @$Approver."
 	} else {
-		Reply-ToPR $pr (Get-CannedResponse approve $Approver -NoClip)
+		Push-PRReply $pr (Get-CannedResponse approve $Approver -NoClip)
 	}
 }
 
@@ -1512,6 +1515,7 @@ Function Get-Timeclock {
 }
 
 Function Get-HoursWorkedToday {
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'Today', Justification = 'The variable is used in a conditional but ScriptAnalyser does not recognize the scope')]
 	Param(
 		$Today = (Get-Date).Day
 	)

@@ -1248,7 +1248,7 @@ Function Get-PRWatch {
 				} elseif ($null -ne $WinGetOutput) {
 					If ($PRtitle -match ' [.]') {
 						#If has spaces (4.4 .5 .220)
-						Reply-ToPR -PR $PR -Body 'Spaces detected in version number.' -Silent
+						Push-PRReply -PR $PR -Body 'Spaces detected in version number.' -Silent
 						$matchColor = $invalidColor
 						$prAuth = '-!'
 					}
@@ -1265,7 +1265,7 @@ Function Get-PRWatch {
 						$Approve = '-!'
 						$Body = "Hi @$Submitter,`n`n> This PR's version number $prVersion has $prVersionParams parameters (sets of numbers between dots - major, minor, etc), which is $greaterOrLessThan than the current manifest's version $($ManifestVersion), which has $ManifestVersionParams parameters.`n`nIs this intentional?"
 						$Body = $Body + "`n`n(Automated response - build $build)"
-						Reply-ToPR -PR $PR -Body $Body -Silent
+						Push-PRReply -PR $PR -Body $Body -Silent
 						invoke-GitHubPRRequest -PR $PR -Method POST -Type labels -Data 'Needs-Author-Feedback'
 					}
 				}
@@ -1324,7 +1324,7 @@ Function Get-PRWatch {
 					$WordFilter = '-!'
 					$Approved = '-!'
 					$matchColor = $invalidColor
-					Reply-ToPR -PR $PR -CannedResponse WordFilter -UserInput $WordFilterMatch -Silent
+					Push-PRReply -PR $PR -CannedResponse WordFilter -UserInput $WordFilterMatch -Silent
 				}
 				Write-Host -NoNewline -f $matchColor "$WordFilter | "
 				$matchColor = $validColor
@@ -1337,12 +1337,12 @@ Function Get-PRWatch {
 						if (($ANFOld -eq $true) -and ($ANFCurrent -eq $false)) {
 							$matchColor = $invalidColor
 							$AnF = '-'
-							Reply-ToPR -PR $PR -CannedResponse AppsAndFeaturesMissing -UserInput $Submitter -Silent
+							Push-PRReply -PR $PR -CannedResponse AppsAndFeaturesMissing -UserInput $Submitter -Silent
 							invoke-GitHubPRRequest -PR $PR -Method POST -Type labels -Data 'Needs-Author-Feedback'
 						} elseif (($ANFOld -eq $false) -and ($ANFCurrent -eq $true)) {
 							$matchColor = $cautionColor
 							$AnF = '+'
-							Reply-ToPR -PR $PR -CannedResponse AppsAndFeaturesNew -UserInput $Submitter -Silent
+							Push-PRReply -PR $PR -CannedResponse AppsAndFeaturesNew -UserInput $Submitter -Silent
 							#invoke-GitHubPRRequest -PR $PR -Method POST -Type labels -Data "Needs-Author-Feedback"
 						} elseif (($ANFOld -eq $false) -and ($ANFCurrent -eq $false)) {
 							$AnF = '0'
@@ -1397,7 +1397,7 @@ Function Get-PRWatch {
 
 						$ListingDiff = '-!'
 						$matchColor = $cautionColor
-						Reply-ToPR -PR $PR -CannedResponse ListingDiff -UserInput $GLD -Silent
+						Push-PRReply -PR $PR -CannedResponse ListingDiff -UserInput $GLD -Silent
 						invoke-GitHubPRRequest -PR $PR -Method POST -Type labels -Data 'Needs-Author-Feedback'
 					}
 				}
