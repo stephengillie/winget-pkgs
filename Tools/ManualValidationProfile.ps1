@@ -1,3 +1,7 @@
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'This script is not intended to have any outputs piped')]
+# The Param block is needed for PSScriptAnalyzer to properly scope it's rules
+param()
+
 $VM = 0
 $build = 122
 $ipconfig = (ipconfig)

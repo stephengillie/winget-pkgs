@@ -11,10 +11,10 @@
 #1.1.0 Automatic PR approval.
 #1.0.0 Redesign output to be easier to read, based on Markdown table formatting. Remove unused utility functions.
 
-
 [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'This script is not intended to have any outputs piped')]
 # The Param block is needed for PSScriptAnalyzer to properly scope it's rules
 param()
+
 Function Get-PRWatch {
 	[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', 'matchVar', Justification = 'The variable is used in a conditional but ScriptAnalyser does not recognize the scope')]
 
