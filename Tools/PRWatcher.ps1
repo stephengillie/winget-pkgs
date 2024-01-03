@@ -12,9 +12,12 @@
 #1.0.0 Redesign output to be easier to read, based on Markdown table formatting. Remove unused utility functions.
 
 
-#[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'Console application. Outputs have been manually suppressed where desired.')]
-
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '', Justification = 'This script is not intended to have any outputs piped')]
+# The Param block is needed for PSScriptAnalyzer to properly scope it's rules
+param()
 Function Get-PRWatch {
+	[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', 'matchVar', Justification = 'The variable is used in a conditional but ScriptAnalyser does not recognize the scope')]
+
 	[CmdletBinding()]
 	param(
 		[switch]$noNew,
@@ -1386,7 +1389,7 @@ Function Get-PRWatch {
 				$matchColor = $validColor
 
 				$GLD = Get-ListingDiff $clip | Where-Object { $_.SideIndicator -eq '<=' } #Ignores when a PR adds files that didn't exist before.
-				if ($GLD -ne $null) {
+				if ($null -ne $GLD) {
 					if ($GLD -eq 'Error') {
 						$ListingDiff = 'E'
 						$matchColor = $invalidColor
