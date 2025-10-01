@@ -1,5 +1,5 @@
 $VM = 0
-$build = 137
+$build = 139
 $ipconfig = (ipconfig)
 $remoteIP = ([ipaddress](($ipconfig | select-string "Default Gateway") -split ": ")[1]).IPAddressToString
 #$remoteIP = ([ipaddress](($ipconfig[($ipconfig | select-string "vEthernet").LineNumber..$ipconfig.length] | select-string "IPv4 Address") -split ": ")[1]).IPAddressToString
@@ -29,8 +29,9 @@ Function Send-SharedError {
 	$Clip -join "`n" | Out-File "$writeFolder\err.txt"
 	if ($Approved) {
 		Get-TrackerVMSetStatus "SendStatus-Approved"
+	}  else {
+		Get-TrackerVMSetStatus "SendStatus-Complete"
 	}
-	Get-TrackerVMSetStatus "SendStatus-Complete"
 }
 
 function Get-ARPTable {
@@ -92,6 +93,27 @@ Function Get-TrackerVMStatus{
 		$out = ($out | where {$_.status -eq $Status}).vm	
 	}
 	$out
+}
+
+Function Get-InstalledVersions {
+	Param(
+		$file = (gc C:\Users\User\Desktop\ChangedFiles.txt | where {$_ -match "Links"} | where {$_ -match "exe"})
+		$cmdstring = "version",
+		$ArpName = (($file -split "\\")[-1] -split "\.")[0]
+	)
+	if ($file) {
+		$ArpData = Get-ARPTable $ArpName
+		$FileData = &"$file" "--$cmdstring"
+		if ($null -eq $FileData){
+			$FileData = &"$file" "$cmdstring"
+		}
+		$shouldsend = $false
+		($FileData -replace ":"," " -replace "v","" -split " ") |%{if ($ArpData.DisplayVersion -match $_ ) {$shouldsend = $true}}
+		if ($shouldsend){
+			Send-SharedError -Status Approved -Clip $FileData
+		}
+	}
+
 }
 
 <#

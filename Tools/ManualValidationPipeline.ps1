@@ -6,7 +6,7 @@
 #Notes: Utilities to streamline evaluating 3rd party PRs.
 
 
-$build = 1085
+$build = 1117
 $appName = "ManualValidationPipeline"
 Write-Host "$appName build: $build"
 $MainFolder = "C:\ManVal"
@@ -42,6 +42,7 @@ $AutowaiverFile = "$ReposFolder\Tools\Autowaiver.csv"
 $PRStateDataFile = "$ReposFolder\Tools\PRStateFromComments.csv"
 $PRQueueFile = "C:\manval\misc\PRQueue.txt"
 $PRExcludeFile = "C:\manval\misc\PRExclude.txt"
+$MMCExceptionListFile = "C:\repos\winget-pkgs\Tools\MMCExceptionList.txt"
 
 $Win10Folder = "$imagesFolder\Win10-Created053025-Original"
 $Win11Folder = "$imagesFolder\Win11-Created061225-Original"
@@ -57,7 +58,7 @@ $VMUserName = "user" #Set to the internal username you're using in your VMs.
 $GitHubUserName = "stephengillie"
 $SystemRAM = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1gb
 $Host.UI.RawUI.WindowTitle = "Utility"
-$GitHubRateLimitDelay = 0.2 #seconds
+$GitHubRateLimitDelay = 0.25 #seconds
 
 $PRRegex = "[0-9]{5,6}"
 $hashPRRegex = "[#]"+$PRRegex
@@ -289,9 +290,9 @@ Function Get-TrackerVMRunTracker {
 		} else {
 			Get-TrackerVMRotate
 		}
-		Write-Output "End of cycle."
 		Start-Sleep 5;
 	}
+	Write-Host "End of cycle."
 	#Write-Progress -Completed
 }
 
@@ -304,6 +305,7 @@ Function Get-PRWatch {
 		$LogFile = ".\PR.txt",
 		$ReviewFile = ".\Review.csv",
 		$oldclip = "",
+		$SecondsBetweenRuns = 600,
 		$PrePipeline = $false,
 		$AuthList = (Get-ValidationData -Property authStrictness),
 		$AgreementsList = (Get-ValidationData -Property AgreementUrl),
@@ -316,1527 +318,1542 @@ Function Get-PRWatch {
 
 	Write-Host " | Timestmp | $(Get-PadRight PR# 6) | $(Get-PadRight PackageIdentifier) | $(Get-PadRight prVersion 15) | A | R | G | W | F | I | D | V | $(Get-PadRight ManifestVer 14) | OK |"
 	Write-Host " | -------- | ----- | ------------------------------- | -------------- | - | - | - | - | - | - | - | - | ------------- | -- |"
+	$preset = "Approval2"
 
 	while($True -gt 0){
-		$clip = (Get-Clipboard)
-		$PRtitle = $clip | Select-String ($hashPRRegexEnd);
-		$PR = ($PRtitle -split "#")[1]
-		if ($PRtitle) {
-			if (Compare-Object $PRtitle $oldclip) {
-				# if ((Get-Command Get-Status).name) {
-					# (Get-Status | Where-Object {$_.status -eq "ValidationCompleted"} | Format-Table)
-				# }
-				$validColor = "green"
-				$invalidColor = "red"
-				$cautionColor = "yellow"
+		Write-Host "Gathering PR numbers for $preset"
+		$Results = (Get-SearchGitHub -Preset $preset -nBMM).number
+		Write-Host "Found $($results.count) PRs"
+		foreach ($PR in $Results) {
+			# $clip = $null
+			#$clip = (Get-Clipboard)
+			Write-Host "Processing PR $PR"
+			$clip = Get-PRManifest -pr $PR; 
+			# if ($null -ne $clip)
+			Write-Host "PR manifest length $($clip.count)"
+			#$PRtitle = $clip | Select-String ($hashPRRegexEnd);
+			$PRtitle = ((Invoke-GitHubPRRequest -PR $PR -Type "" -Output content -JSON).title);
+			Write-Host "PR title $PRTitle"
+			#$PR = ($PRtitle -split "#")[1]
+			
+			if ($PRtitle) {
+				if (Compare-Object $PRtitle $oldclip) {
+					# if ((Get-Command Get-Status).name) {
+						# (Get-Status | Where-Object {$_.status -eq "ValidationCompleted"} | Format-Table)
+					# }
+					$validColor = "green"
+					$invalidColor = "red"
+					$cautionColor = "yellow"
 
-				Switch ($Chromatic) {
-					#Color schemes, to accomodate needs and also add variety.
-						"Default" {
-							$validColor = "Green"
-							$invalidColor = "Red"
-							$cautionColor = "Yellow"
-						}
-						"Warm" {
-							$validColor = "White"
-							$invalidColor = "Red"
-							$cautionColor = "Yellow"
-						}
-						"Cool" {
-							$validColor = "Green"
-							$invalidColor = "Blue"
-							$cautionColor = "Cyan"
-						}
-						"Random" {
-							$Chromatic = ($CountrySet | get-random)
-							Write-Host "Using CountrySet $Chromatic" -f green
-						}
-#https://www.flagpictures.com/countries/flag-colors/
-"Afghanistan"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Albania"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-}
-"Algeria"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"American Samoa"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Andorra"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Angola"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Anguilla"{
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Antigua And Barbuda"{
-	$invalidColor = "Red"
-	$validColor = "DarkGray"
-	$invalidColor = "Blue"
-	$validColor = "White"
-	$cautionColor = "Yellow"
-}
-"Argentina"{
-	$validColor = "White"
-	$cautionColor = "Cyan"
-}
-"Armenia"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "DarkYellow"
-}
-"Aruba"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Australia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Austria"{
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Azerbaijan"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Cyan"
-}
-"Bahamas"{
-	$validColor = "DarkGray"
-	$invalidColor = "Cyan"
-	$cautionColor = "Yellow"
-}
-"Bahrain"{
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Bangladesh"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-}
-"Barbados"{
-	$validColor = "DarkGray"
-	$invalidColor = "Blue"
-	$cautionColor = "DarkYellow"
-}
-"Belarus"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Belgium"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Belize"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Benin"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Bermuda"{
-	$invalidColor = "Red"
-}
-"Bhutan"{
-	$validColor = "DarkRed"
-	$invalidColor = "DarkYellow"
-	$cautionColor = "White"
-}
-"Bolivia"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Bosnia And Herzegovina"{
-	$invalidColor = "Blue"
-	$validColor = "White"
-	$cautionColor = "Yellow"
-}
-"Botswana"{
-	$validColor = "DarkGray"
-	$invalidColor = "White"
-	$cautionColor = "Cyan"
-}
-"Bouvet Island"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Brazil"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$cautionColor = "DarkYellow"
-}
-"Brunei Darussalam"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$validColor = "White"
-	$cautionColor = "Yellow"
-}
-"Bulgaria"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Burkina Faso"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Burundi"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Cabo Verde"{
-	$validColor = "White"
-	$invalidColor = "DarkYellow"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Cambodia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Cameroon"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Canada"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Central African Republic"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Chad"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Chile"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"China"{
-	$invalidColor = "Red"
-	$cautionColor = "DarkYellow"
-}
-"Colombia"{
-	$invalidColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Comoros"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Cook Islands"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Costa Rica"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Croatia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Cuba"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"CuraÃ§ao"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Cyprus"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-}
-"Czechia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"CÃ´te D'Ivoire"{
-	$validColor = "Green"
-	$invalidColor = "DarkYellow"
-	$cautionColor = "White"
-}
-"Democratic Republic Of The Congo"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Denmark"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Djibouti"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Cyan"
-}
-"Dominica"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Dominican Republic"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Ecuador"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Egypt"{
-	$validColor = "DarkGray"
-	$invalidColor = "DarkYellow"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"El Salvador"{
-	$validColor = "White"
-	$invalidColor = "DarkYellow"
-	$cautionColor = "Blue"
-}
-"Equatorial Guinea"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Eritrea"{
-	$validColor = "Green"
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Estonia"{
-	$validColor = "DarkGray"
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Eswatini"{
-	$validColor = "DarkGray"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Ethiopia"{
-	$validColor = "Green"
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Fiji"{
-	$validColor = "White"
-	$validColor = "DarkBlue"
-	$invalidColor = "DarkYellow"
-	$invalidColor = "Red"
-	$cautionColor = "Cyan"
-}
-"Finland"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-}
-"France"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"French Polynesia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$invalidColor = "Blue"
-	$cautionColor = "DarkYellow"
-}
-"Gabon"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Gambia"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Georgia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Germany"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "DarkYellow"
-}
-"Ghana"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Greece"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-}
-"Grenada"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Guatemala"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-}
-"Guinea"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Guinea-Bissau"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Guyana"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Haiti"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-}
-"Holy See (Vatican City State)"{
-	$validColor = "White"
-	$cautionColor = "Yellow"
-}
-"Honduras"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-}
-"Hong Kong" {
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Hungary"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Iceland"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"India"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Blue"
-	$cautionColor = "DarkYellow"
-}
-"Indonesia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Iran"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Iraq"{
-	$invalidColor = "Red"
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Ireland"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-}
-"Israel"{
-	$validColor = "White"
-	$invalidColor = "Blue"
-}
-"Italy"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Jamaica"{
-	$validColor = "Green"
-	$invalidColor = "DarkGray"
-	$cautionColor = "DarkYellow"
-}
-"Japan"{
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Jordan"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Kazakhstan"{
-	$cautionColor = "Yellow"
-	$invalidColor = "Blue"
-}
-"Kenya"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Kiribati"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$invalidColor = "Blue"
-	$cautionColor = "DarkYellow"
-}
-"Kuwait"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Kyrgyzstan"{
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Laos"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Latvia"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Lebanon"{
-	$invalidColor = "Red"
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Lesotho"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Liberia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Libya"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Liechtenstein"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-}
-"Lithuania"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Luxembourg"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Cyan"
-}
-"Macao" {
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Madagascar"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Malawi"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "DarkGray"
-}
-"Malaysia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$invalidColor = "DarkBlue"
-	$cautionColor = "Yellow"
-}
-"Maldives"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Mali"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Malta"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Marshall Islands"{
-	$invalidColor = "Blue"
-	$invalidColor = "DarkYellow"
-	$cautionColor = "White"
-}
-"Mauritania"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Mauritius"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$invalidColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Mexico"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Micronesia"{
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Moldova"{
-	$validColor = "Blue"
-	$invalidColor = "DarkYellow"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Monaco"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Mongolia"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Montenegro"{
-	$invalidColor = "Red"
-	$cautionColor = "DarkYellow"
-}
-"Morocco"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-}
-"Mozambique"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Myanmar"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-	$cautionColor = "White"
-}
-"Namibia"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Nauru"{
-	$invalidColor = "Blue"
-	$validColor = "White"
-	$cautionColor = "Yellow"
-}
-"Nepal"{
-	$validColor = "DarkRed"
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Netherlands"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"New Zealand"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Nicaragua"{
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Niger"{
-	$validColor = "Green"
-	$cautionColor = "White"
-	$cautionColor = "DarkYellow"
-}
-"Nigeria"{
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Niue"{
-	$validColor = "DarkYellow"
-}
-"Norfolk Island"{
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"North Korea"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"North Macedonia"{
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Norway"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Oman"{
-	$invalidColor = "Red"
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Pakistan"{
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Palau"{
-	$cautionColor = "Yellow"
-	$invalidColor = "Blue"
-}
-"Palestine"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Panama"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Papua New Guinea"{
-	$validColor = "DarkGray"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Paraguay"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Peru"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Philippines"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Pitcairn Islands"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$invalidColor = "Blue"
-	$cautionColor = "Brown"
-	$cautionColor = "Yellow"
-}
-"Poland"{
-	$validColor = "White"
-	$invalidColor = "Red"
-}
-"Portugal"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Qatar"{
-	$validColor = "DarkRed"
-	$cautionColor = "White"
-}
-"Republic Of The Congo"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Romania"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Russian Federation"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Rwanda"{
-	$validColor = "Green"
-	$invalidColor = "Cyan"
-	$cautionColor = "Yellow"
-}
-"Saint Kitts And Nevis"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Saint Lucia"{
-	$validColor = "DarkGray"
-	$validColor = "White"
-	$invalidColor = "Cyan"
-	$cautionColor = "Yellow"
-}
-"Saint Vincent And The Grenadines"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Samoa"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"San Marino"{
-	$validColor = "White"
-	$cautionColor = "Cyan"
-}
-"Sao Tome And Principe"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Saudi Arabia"{
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Senegal"{
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Serbia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Seychelles"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Sierra Leone"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Singapore"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Slovakia"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Slovenia"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$invalidColor = "Blue"
-	$cautionColor = "DarkYellow"
-	$cautionColor = "White"
-}
-"Solomon Islands"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Somalia"{
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"South Africa"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$invalidColor = "Blue"
-	$invalidColor = "DarkYellow"
-	$cautionColor = "White"
-}
-"South Korea"{
-	$validColor = "White"
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"South Sudan"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Spain"{
-	$invalidColor = "Red"
-	$invalidColor = "DarkYellow"
-}
-"Sri Lanka"{
-	$validColor = "Green"
-	$invalidColor = "DarkRed"
-	$cautionColor = "DarkYellow"
-}
-"Sudan"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Suriname"{
-	$validColor = "DarkYellow"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Sweden"{
-	$validColor = "Blue"
-	$invalidColor = "DarkYellow"
-}
-"Switzerland"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Syrian Arab Republic"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Tajikistan"{
-	$validColor = "DarkYellow"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Tanzania, United Republic Of"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$invalidColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Thailand"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Togo"{
-	$validColor = "Green"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Tonga"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Trinidad And Tobago"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Tunisia"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Turkey"{
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Turkmenistan"{
-	$validColor = "Green"
-	$cautionColor = "White"
-}
-"Tuvalu"{
-	$validColor = "DarkBlue"
-	$invalidColor = "DarkYellow"
-	$invalidColor = "Red"
-	$cautionColor = "Cyan"
-	$cautionColor = "White"
-}
-"Uganda"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-	$cautionColor = "Yellow"
-}
-"Ukraine"{
-	$invalidColor = "Blue"
-	$invalidColor = "DarkYellow"
-}
-"United Arab Emirates"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"United Kingdom"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"United States"{
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Blue"
-}
-"Uruguay"{
-	$invalidColor = "Blue"
-	$cautionColor = "White"
-}
-"Uzbekistan"{
-	$validColor = "Green"
-	$invalidColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Vanuatu"{
-	$validColor = "DarkGray"
-	$validColor = "Green"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Venezuela"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Vietnam"{
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Yemen"{
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "White"
-}
-"Zambia"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$invalidColor = "Red"
-	$cautionColor = "DarkYellow"
-}
-"Zimbabwe"{
-	$validColor = "Green"
-	$validColor = "DarkGray"
-	$validColor = "White"
-	$invalidColor = "Red"
-	$cautionColor = "Yellow"
-}
-"Ã…land Islands"{
-	$validColor = "Blue"
-	$invalidColor = "Red"
-	$cautionColor = "DarkYellow"
-}
-						Default {
-							$validColor = "Green"
-							$invalidColor = "Red"
-							$cautionColor = "Yellow"
-						}
-					}; #end Switch Chromatic
+					Switch ($Chromatic) {
+						#Color schemes, to accomodate needs and also add variety.
+							"Default" {
+								$validColor = "Green"
+								$invalidColor = "Red"
+								$cautionColor = "Yellow"
+							}
+							"Warm" {
+								$validColor = "White"
+								$invalidColor = "Red"
+								$cautionColor = "Yellow"
+							}
+							"Cool" {
+								$validColor = "Green"
+								$invalidColor = "Blue"
+								$cautionColor = "Cyan"
+							}
+							"Random" {
+								$Chromatic = ($CountrySet | get-random)
+								Write-Host "Using CountrySet $Chromatic" -f green
+							}
+	#https://www.flagpictures.com/countries/flag-colors/
+	"Afghanistan"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Albania"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+	}
+	"Algeria"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"American Samoa"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Andorra"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Angola"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Anguilla"{
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Antigua And Barbuda"{
+		$invalidColor = "Red"
+		$validColor = "DarkGray"
+		$invalidColor = "Blue"
+		$validColor = "White"
+		$cautionColor = "Yellow"
+	}
+	"Argentina"{
+		$validColor = "White"
+		$cautionColor = "Cyan"
+	}
+	"Armenia"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "DarkYellow"
+	}
+	"Aruba"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Australia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Austria"{
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Azerbaijan"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Cyan"
+	}
+	"Bahamas"{
+		$validColor = "DarkGray"
+		$invalidColor = "Cyan"
+		$cautionColor = "Yellow"
+	}
+	"Bahrain"{
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Bangladesh"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+	}
+	"Barbados"{
+		$validColor = "DarkGray"
+		$invalidColor = "Blue"
+		$cautionColor = "DarkYellow"
+	}
+	"Belarus"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Belgium"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Belize"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Benin"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Bermuda"{
+		$invalidColor = "Red"
+	}
+	"Bhutan"{
+		$validColor = "DarkRed"
+		$invalidColor = "DarkYellow"
+		$cautionColor = "White"
+	}
+	"Bolivia"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Bosnia And Herzegovina"{
+		$invalidColor = "Blue"
+		$validColor = "White"
+		$cautionColor = "Yellow"
+	}
+	"Botswana"{
+		$validColor = "DarkGray"
+		$invalidColor = "White"
+		$cautionColor = "Cyan"
+	}
+	"Bouvet Island"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Brazil"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$cautionColor = "DarkYellow"
+	}
+	"Brunei Darussalam"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$validColor = "White"
+		$cautionColor = "Yellow"
+	}
+	"Bulgaria"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Burkina Faso"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Burundi"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Cabo Verde"{
+		$validColor = "White"
+		$invalidColor = "DarkYellow"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Cambodia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Cameroon"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Canada"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Central African Republic"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Chad"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Chile"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"China"{
+		$invalidColor = "Red"
+		$cautionColor = "DarkYellow"
+	}
+	"Colombia"{
+		$invalidColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Comoros"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Cook Islands"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Costa Rica"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Croatia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Cuba"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"CuraÃ§ao"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Cyprus"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+	}
+	"Czechia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"CÃ´te D'Ivoire"{
+		$validColor = "Green"
+		$invalidColor = "DarkYellow"
+		$cautionColor = "White"
+	}
+	"Democratic Republic Of The Congo"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Denmark"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Djibouti"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Cyan"
+	}
+	"Dominica"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Dominican Republic"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Ecuador"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Egypt"{
+		$validColor = "DarkGray"
+		$invalidColor = "DarkYellow"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"El Salvador"{
+		$validColor = "White"
+		$invalidColor = "DarkYellow"
+		$cautionColor = "Blue"
+	}
+	"Equatorial Guinea"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Eritrea"{
+		$validColor = "Green"
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Estonia"{
+		$validColor = "DarkGray"
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Eswatini"{
+		$validColor = "DarkGray"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Ethiopia"{
+		$validColor = "Green"
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Fiji"{
+		$validColor = "White"
+		$validColor = "DarkBlue"
+		$invalidColor = "DarkYellow"
+		$invalidColor = "Red"
+		$cautionColor = "Cyan"
+	}
+	"Finland"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+	}
+	"France"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"French Polynesia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$invalidColor = "Blue"
+		$cautionColor = "DarkYellow"
+	}
+	"Gabon"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Gambia"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Georgia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Germany"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "DarkYellow"
+	}
+	"Ghana"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Greece"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+	}
+	"Grenada"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Guatemala"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+	}
+	"Guinea"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Guinea-Bissau"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Guyana"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Haiti"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+	}
+	"Holy See (Vatican City State)"{
+		$validColor = "White"
+		$cautionColor = "Yellow"
+	}
+	"Honduras"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+	}
+	"Hong Kong" {
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Hungary"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Iceland"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"India"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Blue"
+		$cautionColor = "DarkYellow"
+	}
+	"Indonesia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Iran"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Iraq"{
+		$invalidColor = "Red"
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Ireland"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+	}
+	"Israel"{
+		$validColor = "White"
+		$invalidColor = "Blue"
+	}
+	"Italy"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Jamaica"{
+		$validColor = "Green"
+		$invalidColor = "DarkGray"
+		$cautionColor = "DarkYellow"
+	}
+	"Japan"{
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Jordan"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Kazakhstan"{
+		$cautionColor = "Yellow"
+		$invalidColor = "Blue"
+	}
+	"Kenya"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Kiribati"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$invalidColor = "Blue"
+		$cautionColor = "DarkYellow"
+	}
+	"Kuwait"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Kyrgyzstan"{
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Laos"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Latvia"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Lebanon"{
+		$invalidColor = "Red"
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Lesotho"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Liberia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Libya"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Liechtenstein"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+	}
+	"Lithuania"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Luxembourg"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Cyan"
+	}
+	"Macao" {
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Madagascar"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Malawi"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "DarkGray"
+	}
+	"Malaysia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$invalidColor = "DarkBlue"
+		$cautionColor = "Yellow"
+	}
+	"Maldives"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Mali"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Malta"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Marshall Islands"{
+		$invalidColor = "Blue"
+		$invalidColor = "DarkYellow"
+		$cautionColor = "White"
+	}
+	"Mauritania"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Mauritius"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$invalidColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Mexico"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Micronesia"{
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Moldova"{
+		$validColor = "Blue"
+		$invalidColor = "DarkYellow"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Monaco"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Mongolia"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Montenegro"{
+		$invalidColor = "Red"
+		$cautionColor = "DarkYellow"
+	}
+	"Morocco"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+	}
+	"Mozambique"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Myanmar"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+		$cautionColor = "White"
+	}
+	"Namibia"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Nauru"{
+		$invalidColor = "Blue"
+		$validColor = "White"
+		$cautionColor = "Yellow"
+	}
+	"Nepal"{
+		$validColor = "DarkRed"
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Netherlands"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"New Zealand"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Nicaragua"{
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Niger"{
+		$validColor = "Green"
+		$cautionColor = "White"
+		$cautionColor = "DarkYellow"
+	}
+	"Nigeria"{
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Niue"{
+		$validColor = "DarkYellow"
+	}
+	"Norfolk Island"{
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"North Korea"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"North Macedonia"{
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Norway"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Oman"{
+		$invalidColor = "Red"
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Pakistan"{
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Palau"{
+		$cautionColor = "Yellow"
+		$invalidColor = "Blue"
+	}
+	"Palestine"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Panama"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Papua New Guinea"{
+		$validColor = "DarkGray"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Paraguay"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Peru"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Philippines"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Pitcairn Islands"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$invalidColor = "Blue"
+		$cautionColor = "Brown"
+		$cautionColor = "Yellow"
+	}
+	"Poland"{
+		$validColor = "White"
+		$invalidColor = "Red"
+	}
+	"Portugal"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Qatar"{
+		$validColor = "DarkRed"
+		$cautionColor = "White"
+	}
+	"Republic Of The Congo"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Romania"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Russian Federation"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Rwanda"{
+		$validColor = "Green"
+		$invalidColor = "Cyan"
+		$cautionColor = "Yellow"
+	}
+	"Saint Kitts And Nevis"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Saint Lucia"{
+		$validColor = "DarkGray"
+		$validColor = "White"
+		$invalidColor = "Cyan"
+		$cautionColor = "Yellow"
+	}
+	"Saint Vincent And The Grenadines"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Samoa"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"San Marino"{
+		$validColor = "White"
+		$cautionColor = "Cyan"
+	}
+	"Sao Tome And Principe"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Saudi Arabia"{
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Senegal"{
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Serbia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Seychelles"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Sierra Leone"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Singapore"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Slovakia"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Slovenia"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$invalidColor = "Blue"
+		$cautionColor = "DarkYellow"
+		$cautionColor = "White"
+	}
+	"Solomon Islands"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Somalia"{
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"South Africa"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$invalidColor = "Blue"
+		$invalidColor = "DarkYellow"
+		$cautionColor = "White"
+	}
+	"South Korea"{
+		$validColor = "White"
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"South Sudan"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Spain"{
+		$invalidColor = "Red"
+		$invalidColor = "DarkYellow"
+	}
+	"Sri Lanka"{
+		$validColor = "Green"
+		$invalidColor = "DarkRed"
+		$cautionColor = "DarkYellow"
+	}
+	"Sudan"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Suriname"{
+		$validColor = "DarkYellow"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Sweden"{
+		$validColor = "Blue"
+		$invalidColor = "DarkYellow"
+	}
+	"Switzerland"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Syrian Arab Republic"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Tajikistan"{
+		$validColor = "DarkYellow"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Tanzania, United Republic Of"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$invalidColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Thailand"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Togo"{
+		$validColor = "Green"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Tonga"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Trinidad And Tobago"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Tunisia"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Turkey"{
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Turkmenistan"{
+		$validColor = "Green"
+		$cautionColor = "White"
+	}
+	"Tuvalu"{
+		$validColor = "DarkBlue"
+		$invalidColor = "DarkYellow"
+		$invalidColor = "Red"
+		$cautionColor = "Cyan"
+		$cautionColor = "White"
+	}
+	"Uganda"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+		$cautionColor = "Yellow"
+	}
+	"Ukraine"{
+		$invalidColor = "Blue"
+		$invalidColor = "DarkYellow"
+	}
+	"United Arab Emirates"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"United Kingdom"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"United States"{
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Blue"
+	}
+	"Uruguay"{
+		$invalidColor = "Blue"
+		$cautionColor = "White"
+	}
+	"Uzbekistan"{
+		$validColor = "Green"
+		$invalidColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Vanuatu"{
+		$validColor = "DarkGray"
+		$validColor = "Green"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Venezuela"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Vietnam"{
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Yemen"{
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "White"
+	}
+	"Zambia"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$invalidColor = "Red"
+		$cautionColor = "DarkYellow"
+	}
+	"Zimbabwe"{
+		$validColor = "Green"
+		$validColor = "DarkGray"
+		$validColor = "White"
+		$invalidColor = "Red"
+		$cautionColor = "Yellow"
+	}
+	"Ã…land Islands"{
+		$validColor = "Blue"
+		$invalidColor = "Red"
+		$cautionColor = "DarkYellow"
+	}
+							Default {
+								$validColor = "Green"
+								$invalidColor = "Red"
+								$cautionColor = "Yellow"
+							}
+						}; #end Switch Chromatic
 
-				$noRecord = $False
-				$title = $PRtitle -split ": "
-				if ($title[1]) {
-					$title = $title[1] -split " "
-				} else {
-					$title = $title -split " "
-				}
-				$Submitter = (($clip | Select-String "wants to merge") -split " ")[0]
-				$InstallerType = Get-YamlValue InstallerType
+					$noRecord = $False
+					$title = $PRtitle -split ": "
+					if ($title[1]) {
+						$title = $title[1] -split " "
+					} else {
+						$title = $title -split " "
+					}
+					$Submitter = (($clip | Select-String "wants to merge") -split " ")[0]
+					$InstallerType = Get-YamlValue InstallerType
 
-				#Split the title by spaces. Try extracting the version location as the next item after the word "version", and if that fails, use the 2nd to the last item, then 3rd to last, and 4th to last. For some reason almost everyone puts the version number as the last item, and GitHub appends the PR number.
-				$prVerLoc =($title | Select-String "version").linenumber
-				#Version is on the line before the line number, and this set indexes with 1 - but the following array indexes with 0, so the value is automatically transformed by the index mismatch.
-				try {
-					[System.Version]$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
-				} catch {
+					#Split the title by spaces. Try extracting the version location as the next item after the word "version", and if that fails, use the 2nd to the last item, then 3rd to last, and 4th to last. For some reason almost everyone puts the version number as the last item, and GitHub appends the PR number.
+					$prVerLoc =($title | Select-String "version").linenumber
+					#Version is on the line before the line number, and this set indexes with 1 - but the following array indexes with 0, so the value is automatically transformed by the index mismatch.
 					try {
-						$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
+						[System.Version]$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
 					} catch {
-							try {
-						[System.Version]$prVersion = Get-YamlValue PackageVersion $clip
+						try {
+							$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
 						} catch {
-							if ($null -ne $PRVerLoc) {
 								try {
-									[System.Version]$prVersion = $title[$prVerLoc]
-								} catch {
-									[string]$prVersion = $title[$prVerLoc]
-								}
-							} else {
-							#Otherwise we have to go hunting for the version number.
-								try {
-									[System.Version]$prVersion = $title[-1]
-								} catch {
+							[System.Version]$prVersion = Get-YamlValue PackageVersion $clip
+							} catch {
+								if ($null -ne $PRVerLoc) {
 									try {
-										[System.Version]$prVersion = $title[-2]
+										[System.Version]$prVersion = $title[$prVerLoc]
+									} catch {
+										[string]$prVersion = $title[$prVerLoc]
+									}
+								} else {
+								#Otherwise we have to go hunting for the version number.
+									try {
+										[System.Version]$prVersion = $title[-1]
 									} catch {
 										try {
-											[System.Version]$prVersion = $title[-3]
+											[System.Version]$prVersion = $title[-2]
 										} catch {
 											try {
-												[System.Version]$prVersion = $title[-4]
+												[System.Version]$prVersion = $title[-3]
 											} catch {
-												#If it's not a semantic version, guess that it's the 2nd to last, based on the above logic.
-												[string]$prVersion = $title[-2]
+												try {
+													[System.Version]$prVersion = $title[-4]
+												} catch {
+													#If it's not a semantic version, guess that it's the 2nd to last, based on the above logic.
+													[string]$prVersion = $title[-2]
+												}
 											}
 										}
-									}
+									}; #end try
 								}; #end try
-							}; #end try
-						}; #end if null
+							}; #end if null
+						}; #end try
 					}; #end try
-				}; #end try
 
-				#Get the PackageIdentifier and alert if it matches the auth list.
-				$PackageIdentifier = ""
-				try {
-					$PackageIdentifier = Get-YamlValue PackageIdentifier $clip -replace '"',""
-				} catch {
-					$PackageIdentifier = (Get-CleanClip $PRtitle); -replace '"',""
-				}
-				$matchColor = $validColor
-
+					#Get the PackageIdentifier and alert if it matches the auth list.
+					$PackageIdentifier = ""
+					try {
+						$PackageIdentifier = Get-YamlValue PackageIdentifier $clip -replace '"',""
+					} catch {
+						$PackageIdentifier = (Get-CleanClip $PRtitle); -replace '"',""
+					}
+					$matchColor = $validColor
 
 
 
 
-				Write-Host -nonewline -f $matchColor " | $(Get-Date -Format T) | $PR | $(Get-PadRight $PackageIdentifier) | "
 
-				#Variable effervescence
-				$prAuth = "+"
-				$Auth = "A"
-				$Review = "R"
-				$WordFilter = "W"
-				$AgreementAccept = "G"
-				$AnF = "F"
-				$InstVer = "I"
-				$ListingDiff = "D"
-				$NumVersions = 99
-				$PRvMan = "P"
-				$Approve = "+"
+					Write-Host -nonewline -f $matchColor " | $(Get-Date -Format T) | $PR | $(Get-PadRight $PackageIdentifier) | "
 
-				$WinGetOutput = Find-WinGetPackage $PackageIdentifier | where {$_.id -eq $PackageIdentifier}
-				$ManifestVersion = $WinGetOutput.version
-				$ManifestVersionParams = ($ManifestVersion -split "[.]").count
-				$prVersionParams = ($prVersion -split "[.]").count
+					#Variable effervescence
+					$prAuth = "+"
+					$Auth = "A"
+					$Review = "R"
+					$WordFilter = "W"
+					$AgreementAccept = "G"
+					$AnF = "F"
+					$InstVer = "I"
+					$ListingDiff = "D"
+					$NumVersions = 99
+					$PRvMan = "P"
+					$Approve = "+"
 
-
-				$AuthMatch = $AuthList | Where-Object {$_.PackageIdentifier -eq $PackageIdentifier}
-
-				if ($AuthMatch) {
-					$AuthAccount = $AuthMatch.GitHubUserName | Sort-Object -Unique
-				}
-
-				if ($null -eq $WinGetOutput) {
-					$PRvMan = "N"
-					$matchColor = $invalidColor
-					$Approve = "-!"
-					if ($noNew) {
-						$noRecord = $True
-					} else {
-						Add-PRToQueue -PR $PR
-						# if ($title[-1] -match $hashPRRegex) {
-							# if ((Get-Command Get-TrackerVMValidate).name) {
-								#Add-PRToQueue -PR $PR
-								# Get-TrackerVMValidate -Silent -InspectNew
-							# } else {
-								# Get-Sandbox ($title[-1] -replace"#","")
-							# }; #end if Get-Command
-						# }; #end if title
-					}; #end if noNew
-				}
-				Write-Host -nonewline -f $matchColor "$(Get-PadRight $PRVersion.toString() 14) | "
-				$matchColor = $validColor
+					$WinGetOutput = Find-WinGetPackage $PackageIdentifier | where {$_.id -eq $PackageIdentifier}
+					$ManifestVersion = $WinGetOutput.version
+					$ManifestVersionParams = ($ManifestVersion -split "[.]").count
+					$prVersionParams = ($prVersion -split "[.]").count
 
 
+					$AuthMatch = $AuthList | Where-Object {$_.PackageIdentifier -eq $PackageIdentifier}
+
+					if ($AuthMatch) {
+						$AuthAccount = $AuthMatch.GitHubUserName | Sort-Object -Unique
+					}
+
+					if ($null -eq $WinGetOutput) {
+						$PRvMan = "N"
+						$matchColor = $invalidColor
+						$Approve = "-!"
+						if ($noNew) {
+							$noRecord = $True
+						} else {
+							Add-PRToQueue -PR $PR
+							# if ($title[-1] -match $hashPRRegex) {
+								# if ((Get-Command Get-TrackerVMValidate).name) {
+									#Add-PRToQueue -PR $PR
+									# Get-TrackerVMValidate -Silent -InspectNew
+								# } else {
+									# Get-Sandbox ($title[-1] -replace"#","")
+								# }; #end if Get-Command
+							# }; #end if title
+						}; #end if noNew
+					}
+					Write-Host -nonewline -f $matchColor "$(Get-PadRight $PRVersion.toString() 14) | "
+					$matchColor = $validColor
 
 
-				if ($AuthMatch) {
-					$strictness = $AuthMatch.authStrictness | Sort-Object -Unique
-					$matchVar = ""
-					$matchColor = $cautionColor
-					$AuthAccount -split "/" | where {$_ -notmatch "Microsoft"} | %{
-						#write-host "This $_ Submitter $Submitter"
-						if ($_ -eq $Submitter) {
-							$matchVar = "matches"
-							$Auth = "+"
-							$matchColor = $validColor
-						}
-						foreach ($User in ((Invoke-GitHubPRRequest -PR $PR -Type reviews -Output Content).user.login | select -Unique)) {
-							if ($Submitter -match $User) {
-								$matchVar = "preapproved"
+
+
+					if ($AuthMatch) {
+						$strictness = $AuthMatch.authStrictness | Sort-Object -Unique
+						$matchVar = ""
+						$matchColor = $cautionColor
+						$AuthAccount -split "/" | where {$_ -notmatch "Microsoft"} | %{
+							#write-host "This $_ Submitter $Submitter"
+							if ($_ -eq $Submitter) {
+								$matchVar = "matches"
 								$Auth = "+"
 								$matchColor = $validColor
 							}
-						}
-						
-					}
-					
-					if ($matchVar -eq  "") {
-						$matchVar = "does not match"
-						$Auth = "-"
-						$matchColor = $invalidColor
-					}
-					if ($strictness -eq "must") {
-						$Auth += "!"
-					}
-				}
-				if ($Auth -eq "-!") {
-					if (!$WhatIf) {
-						Get-PRApproval -PR $PR -PackageIdentifier $PackageIdentifier
-					}
-				}
-				Write-Host -nonewline -f $matchColor "$Auth | "
-				$matchColor = $validColor
-
-
-
-
-
-				$ReviewMatch = $ReviewList | Where-Object {$_.PackageIdentifier -match $PackageIdentifier }
-				if ($ReviewMatch) {
-					$Review = $ReviewMatch.Reason | Sort-Object -Unique
-					$matchColor = $cautionColor
-				}
-
-				Write-Host -nonewline -f $matchColor "$Review | "
-				$matchColor = $validColor
-
-
-
-			#In list, matches PR - explicit pass
-			#In list, PR has no Installer.yaml - implicit pass
-			#In list, missing from PR - block
-			#In list, mismatch from PR - block
-			#Not in list or PR - pass
-			#Not in list, in PR - alert and pass?
-			#Check previous version for omission - depend on wingetbot for now.
-			$AgreementUrlFromList = ($AgreementsList | where {$_.PackageIdentifier -eq $PackageIdentifier}).AgreementUrl
-			if ($AgreementUrlFromList) {
-				$AgreementUrlFromClip = Get-YamlValue AgreementUrl $clip -replace '"',""
-				if ($AgreementUrlFromClip -eq $AgreementUrlFromList) {
-					#Explicit Approve - URL is present and matches.
-					$AgreementAccept = "+!"
-				} else {
-					#Explicit mismatch - URL is present and does not match, or URL is missing.
-					$AgreementAccept = "-!"
-					if (!$WhatIf) {
-						Reply-ToPR -PR $PR -CannedMessage AgreementMismatch -UserInput $AgreementUrlFromList -Silent
-					}
-				}
-			} else {
-				$AgreementAccept = "+"
-				#Implicit Approve - your AgreementsUrl is in another file. Can't modify what isn't there. 
-			}
-				Write-Host -nonewline -f $matchColor "$AgreementAccept | "
-				$matchColor = $validColor
-
-
-
-
-
-
-
-
-			if (($PRtitle -notmatch "Automatic deletion") -AND 
-			($PRtitle -notmatch "Delete") -AND 
-			($PRtitle -notmatch "Remove") -AND 
-			($AgreementAccept -notmatch "[+]")) {
-
-				$WordFilterMatch = $WordFilterList | ForEach-Object {($Clip -match $_) -notmatch "Url" -notmatch "Agreement"}
-
-				if ($WordFilterMatch) {
-					$WordFilter = "-!"
-					$Approve = "-!"
-					$matchColor = $invalidColor
-						if (!$WhatIf) {
-						Reply-ToPR -PR $PR -CannedMessage WordFilter -UserInput $WordFilterMatch -Silent
-					}
-				}
-			}
-				Write-Host -nonewline -f $matchColor "$WordFilter | "
-				$matchColor = $validColor
-
-
-
-
-
-				
-				if ($null -ne $WinGetOutput) {
-					if (($PRvMan -ne "N") -AND 
-					($PRtitle -notmatch (($DisplayVersionExceptionList) -join " ")) -AND 
-					($PRtitle -notmatch "Automatic deletion") -AND 
-					($PRtitle -notmatch "Delete") -AND 
-					($PRtitle -notmatch "Remove")) {
-						$DisplayVersion = Get-YamlValue DisplayVersion -clip $clip
-						$DeveloperIsAuthor = (((Get-YamlValue PackageIdentifier -clip $clip) -split ".") -eq $Submitter)
-						$InstallerMatch = ($InstallerUrl -split "/") -match $Submitter
-
-						if ($DisplayVersion) {
-							if ($DisplayVersion -eq $prVersion) {
-								$matchColor = $invalidColor
-								$AnF = "-"
-								if (!$WhatIf) {
-									Reply-ToPR -PR $PR -CannedMessage AppsAndFeaturesMatch -UserInput $Submitter -Policy $Labels.NAF -Silent
-									Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+							foreach ($User in ((Invoke-GitHubPRRequest -PR $PR -Type reviews -Output Content).user.login | select -Unique)) {
+								if ($Submitter -match $User) {
+									$matchVar = "preapproved"
+									$Auth = "+"
+									$matchColor = $validColor
 								}
 							}
+							
 						}
 						
-						# if (!($DeveloperIsAuthor)) {
-							# if ($InstallerMatch) {
-								# $matchColor = $invalidColor
-								# $AnF = "-"
-								# Reply-ToPR -PR $PR -CannedMessage InstallerMatchesSubmitter -UserInput $Submitter -Policy $Labels.NAF -Silent
-								# Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-							# }
-						# }
-					}
-				}
-<# 
- #>
-				Write-Host -nonewline -f $matchColor "$AnF | "
-				$matchColor = $validColor
-
-
-
-
-					if (($PRvMan -ne "N") -AND 
-					($PRtitle -notmatch "Automatic deletion") -AND 
-					($PRtitle -notmatch "Delete") -AND 
-					($PRtitle -notmatch "Remove")) {
-					try {
-						if ([bool]($clip -match "InstallerUrl")) {
-							$InstallerUrl = Get-YamlValue InstallerUrl -clip $clip
-							#write-host "InstallerUrl: $InstallerUrl $installerMatches prVersion: -PR $PRVersion" -f "blue"
-							$installerMatches = [bool]($InstallerUrl | Select-String $PRVersion)
-							if (!($installerMatches)) {
-								#Matches when the dots are removed from semantec versions in the URL.
-								$installerMatches2 = [bool]($InstallerUrl | Select-String ($prVersion -replace "[.]",""))
-								if (!($installerMatches2)) {
-									$matchColor = $invalidColor
-									$InstVer = "-"
-								}
-							}
-						}
-					} catch {
-						$matchColor = $invalidColor
-						$InstVer = "-"
-					}; #end try
-				}; #end if PRvMan
-
-				try {
-					if (($prVersion = Get-YamlValue PackageVersion $clip) -match " ") {
-						$matchColor = $invalidColor
-						$InstVer = "-!"
-					}
-				}catch{
-					$null = (Get-Process) #This section intentionally left blank.
-				}
-
-				Write-Host -nonewline -f $matchColor "$InstVer | "
-				$matchColor = $validColor
-
-
-
-
-
-				if (($PRvMan -ne "N") -AND 
-				(($PRtitle -match "Automatic deletion") -OR 
-				($PRtitle -match "Delete") -OR 
-				($PRtitle -match "Remove"))) {#Removal PR
-					#$Versions = 
-					$NumVersions = ($WinGetOutput.AvailableVersions | sort).count
-					if (($prVersion -eq $ManifestVersion) -OR ($NumVersions -eq 1)) {
-						$matchColor = $invalidColor
-						if (!$WhatIf) {
-							Reply-ToPR -PR $PR -CannedMessage VersionCount -UserInput $Submitter -Silent -Policy "[Policy] $($Labels.NAF)`n[Policy] $($Labels.HVL)" -Output Silent
-							Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-							$NumVersions = "L"
-						}
-					}
-				} else {#Addition PR
-					$GLD = (Get-ListingDiff $clip | Where-Object {$_.SideIndicator -eq "<="}).installer.yaml #Ignores when a PR adds files that didn't exist before.
-					if ($null -ne $GLD) {
-						if ($GLD -eq "Error") {
-							$ListingDiff = "E"
+						if ($matchVar -eq  "") {
+							$matchVar = "does not match"
+							$Auth = "-"
 							$matchColor = $invalidColor
-						} else {
-							$ListingDiff = "-!"
-							$matchColor = $cautionColor
-							if (!$WhatIf) {
-								Reply-ToPR -PR $PR -CannedMessage ListingDiff -UserInput $GLD -Silent
-								Invoke-GitHubPRRequest -PR $PR -Method POST -Type comments -Data "[Policy] $Labels.NAF" -Output Silent
-								Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-							}#if Whatif
-						}#end if GLD
-					}#end if null
-				}#end if PRvMan
-				Write-Host -nonewline -f $matchColor "$ListingDiff | "
-				Write-Host -nonewline -f $matchColor "$NumVersions | "
-				$matchColor = $validColor
-
-
-
-
-
-				if ($PRvMan -ne "N") {
-					if ($null -eq $PRVersion -or "" -eq $PRVersion) {
-						$noRecord = $True
-						$PRvMan = "Error:prVersion"
-						$matchColor = $invalidColor
-					} elseif ($ManifestVersion -eq "Unknown") {
-						$noRecord = $True
-						$PRvMan = "Error:ManifestVersion"
-						$matchColor = $invalidColor
-					} elseif ($null -eq $ManifestVersion) {
-						$noRecord = $True
-						$PRvMan = $WinGetOutput
-						$matchColor = $invalidColor
-					} elseif ($prVersion -gt $ManifestVersion) {
-						$PRvMan = $ManifestVersion.toString()
-					} elseif ($prVersion -lt $ManifestVersion) {
-						$PRvMan = $ManifestVersion.toString()
-						$matchColor = $cautionColor
-					} elseif ($prVersion -eq $ManifestVersion) {
-						$PRvMan = "="
-					} else {
-						$noRecord = $True
-						$PRvMan = $WinGetOutput
-					};
-				};
-
-
-				if (($Approve -eq "-!") -or 
-				($Auth -eq "-!") -or 
-				($AnF -eq "-") -or 
-				($InstVer -eq "-!") -or 
-				($prAuth -eq "-!") -or 
-				($Review -ne "R") -or 
-				($ListingDiff -eq "-!") -or 
-				($NumVersions -eq 1) -or 
-				($NumVersions -eq "L") -or 
-				($WordFilter -eq "-!") -or 
-				($AgreementAccept -eq "-!") -or 
-				($PRvMan -eq "N")) {
-				#-or ($PRvMan -match "^Error")
-					$matchColor = $cautionColor
-					$Approve = "-!"
-					$noRecord = $True
-				}
-				if ($WhatIf) {
-					$Approve += "W"
-				} 
-
-				$PRvMan = Get-PadRight $PRvMan 14
-				Write-Host -nonewline -f $matchColor "$PRvMan | "
-				$matchColor = $validColor
-
-
-
-
-
-				if ($PrePipeline -eq $false) {
-					if ($Approve -eq "+") {
+						}
+						if ($strictness -eq "must") {
+							$Auth += "!"
+						}
+					}
+					if ($Auth -eq "-!") {
 						if (!$WhatIf) {
-							$Approve = Approve-PR -PR $PR
-							Add-PRToRecord -PR $PR -Action $Actions.Approved -Title $PRtitle
+							Get-PRApproval -PR $PR -PackageIdentifier $PackageIdentifier
+						}
+					}
+					Write-Host -nonewline -f $matchColor "$Auth | "
+					$matchColor = $validColor
+
+
+
+
+
+					$ReviewMatch = $ReviewList | Where-Object {$_.PackageIdentifier -match $PackageIdentifier }
+					if ($ReviewMatch) {
+						$Review = $ReviewMatch.Reason | Sort-Object -Unique
+						$matchColor = $cautionColor
+					}
+
+					Write-Host -nonewline -f $matchColor "$Review | "
+					$matchColor = $validColor
+
+
+
+				#In list, matches PR - explicit pass
+				#In list, PR has no Installer.yaml - implicit pass
+				#In list, missing from PR - block
+				#In list, mismatch from PR - block
+				#Not in list or PR - pass
+				#Not in list, in PR - alert and pass?
+				#Check previous version for omission - depend on wingetbot for now.
+				$AgreementUrlFromList = ($AgreementsList | where {$_.PackageIdentifier -eq $PackageIdentifier}).AgreementUrl
+				if ($AgreementUrlFromList) {
+					$AgreementUrlFromClip = Get-YamlValue AgreementUrl $clip -replace '"',""
+					if ($AgreementUrlFromClip -eq $AgreementUrlFromList) {
+						#Explicit Approve - URL is present and matches.
+						$AgreementAccept = "+!"
+					} else {
+						#Explicit mismatch - URL is present and does not match, or URL is missing.
+						$AgreementAccept = "-!"
+						if (!$WhatIf) {
+							Reply-ToPR -PR $PR -CannedMessage AgreementMismatch -UserInput $AgreementUrlFromList -Silent
+						}
+					}
+				} else {
+					$AgreementAccept = "+"
+					#Implicit Approve - your AgreementsUrl is in another file. Can't modify what isn't there. 
+				}
+					Write-Host -nonewline -f $matchColor "$AgreementAccept | "
+					$matchColor = $validColor
+
+
+
+
+
+
+
+
+				if (($PRtitle -notmatch "Automatic deletion") -AND 
+				($PRtitle -notmatch "Delete") -AND 
+				($PRtitle -notmatch "Remove") -AND 
+				($AgreementAccept -notmatch "[+]")) {
+
+					$WordFilterMatch = $WordFilterList | ForEach-Object {($Clip -match $_) -notmatch "Url" -notmatch "Agreement"}
+
+					if ($WordFilterMatch) {
+						$WordFilter = "-!"
+						$Approve = "-!"
+						$matchColor = $invalidColor
+							if (!$WhatIf) {
+							Reply-ToPR -PR $PR -CannedMessage WordFilter -UserInput $WordFilterMatch -Silent
 						}
 					}
 				}
+					Write-Host -nonewline -f $matchColor "$WordFilter | "
+					$matchColor = $validColor
 
-				Write-Host -nonewline -f $matchColor "$Approve | "
-				Write-Host -f $matchColor ""
 
-				$oldclip = $PRtitle
-			}; #end if Compare-Object
-		}; #end if PRtitle
-		Start-Sleep 1
-	}; #end while Count
-	$Count--
+
+
+
+					
+					if ($null -ne $WinGetOutput) {
+						if (($PRvMan -ne "N") -AND 
+						($PRtitle -notmatch (($DisplayVersionExceptionList) -join " ")) -AND 
+						($PRtitle -notmatch "Automatic deletion") -AND 
+						($PRtitle -notmatch "Delete") -AND 
+						($PRtitle -notmatch "Remove")) {
+							$DisplayVersion = Get-YamlValue DisplayVersion -clip $clip
+							$DeveloperIsAuthor = (((Get-YamlValue PackageIdentifier -clip $clip) -split ".") -eq $Submitter)
+							$InstallerMatch = ($InstallerUrl -split "/") -match $Submitter
+
+							if ($DisplayVersion) {
+								if ($DisplayVersion -eq $prVersion) {
+									$matchColor = $invalidColor
+									$AnF = "-"
+									if (!$WhatIf) {
+										Reply-ToPR -PR $PR -CannedMessage AppsAndFeaturesMatch -UserInput $Submitter -Policy $Labels.NAF -Silent
+										Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+									}
+								}
+							}
+							
+							# if (!($DeveloperIsAuthor)) {
+								# if ($InstallerMatch) {
+									# $matchColor = $invalidColor
+									# $AnF = "-"
+									# Reply-ToPR -PR $PR -CannedMessage InstallerMatchesSubmitter -UserInput $Submitter -Policy $Labels.NAF -Silent
+									# Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+								# }
+							# }
+						}
+					}
+
+					Write-Host -nonewline -f $matchColor "$AnF | "
+					$matchColor = $validColor
+
+
+
+
+						if (($PRvMan -ne "N") -AND 
+						($PRtitle -notmatch "Automatic deletion") -AND 
+						($PRtitle -notmatch "Delete") -AND 
+						($PRtitle -notmatch "Remove")) {
+						try {
+							if ([bool]($clip -match "InstallerUrl")) {
+								$InstallerUrl = Get-YamlValue InstallerUrl -clip $clip
+								#write-host "InstallerUrl: $InstallerUrl $installerMatches prVersion: -PR $PRVersion" -f "blue"
+								$installerMatches = [bool]($InstallerUrl | Select-String $PRVersion)
+								if (!($installerMatches)) {
+									#Matches when the dots are removed from semantec versions in the URL.
+									$installerMatches2 = [bool]($InstallerUrl | Select-String ($prVersion -replace "[.]",""))
+									if (!($installerMatches2)) {
+										$matchColor = $invalidColor
+										$InstVer = "-"
+									}
+								}
+							}
+						} catch {
+							$matchColor = $invalidColor
+							$InstVer = "-"
+						}; #end try
+					}; #end if PRvMan
+
+					try {
+						if (($prVersion = Get-YamlValue PackageVersion $clip) -match " ") {
+							$matchColor = $invalidColor
+							$InstVer = "-!"
+						}
+					}catch{
+						$null = (Get-Process) #This section intentionally left blank.
+					}
+
+					Write-Host -nonewline -f $matchColor "$InstVer | "
+					$matchColor = $validColor
+
+
+
+
+
+					if (($PRvMan -ne "N") -AND 
+					(($PRtitle -match "Automatic deletion") -OR 
+					($PRtitle -match "Delete") -OR 
+					($PRtitle -match "Remove"))) {#Removal PR
+						#$Versions = 
+						$NumVersions = ($WinGetOutput.AvailableVersions | sort).count
+						if (($prVersion -eq $ManifestVersion) -OR ($NumVersions -eq 1)) {
+							$matchColor = $invalidColor
+							if (!$WhatIf) {
+								Reply-ToPR -PR $PR -CannedMessage VersionCount -UserInput $Submitter -Silent -Policy "[Policy] $($Labels.NAF)`n[Policy] $($Labels.HVL)" -Output Silent
+								Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+								$NumVersions = "L"
+							}
+						}
+					} else {#Addition PR
+					<#
+						$GLD = (Get-ListingDiff $clip | Where-Object {$_.SideIndicator -eq "<="}).installer.yaml #Ignores when a PR adds files that didn't exist before.
+						if ($null -ne $GLD) {
+							if ($GLD -eq "Error") {
+								$ListingDiff = "E"
+								$matchColor = $invalidColor
+							} else {
+								$ListingDiff = "-!"
+								$matchColor = $cautionColor
+								if (!$WhatIf) {
+									Reply-ToPR -PR $PR -CannedMessage ListingDiff -UserInput $GLD -Silent
+									Invoke-GitHubPRRequest -PR $PR -Method POST -Type comments -Data "[Policy] $Labels.NAF" -Output Silent
+									Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+								}#if Whatif
+							}#end if GLD
+						}#end if null
+					#>
+					}#end if PRvMan
+					Write-Host -nonewline -f $matchColor "$ListingDiff | "
+					Write-Host -nonewline -f $matchColor "$NumVersions | "
+					$matchColor = $validColor
+
+
+
+
+
+					if ($PRvMan -ne "N") {
+						if ($null -eq $PRVersion -or "" -eq $PRVersion) {
+							$noRecord = $True
+							$PRvMan = "Error:prVersion"
+							$matchColor = $invalidColor
+						} elseif ($ManifestVersion -eq "Unknown") {
+							$noRecord = $True
+							$PRvMan = "Error:ManifestVersion"
+							$matchColor = $invalidColor
+						} elseif ($null -eq $ManifestVersion) {
+							$noRecord = $True
+							$PRvMan = $WinGetOutput
+							$matchColor = $invalidColor
+						} elseif ($prVersion -gt $ManifestVersion) {
+							$PRvMan = $ManifestVersion.toString()
+						} elseif ($prVersion -lt $ManifestVersion) {
+							$PRvMan = $ManifestVersion.toString()
+							$matchColor = $cautionColor
+						} elseif ($prVersion -eq $ManifestVersion) {
+							$PRvMan = "="
+						} else {
+							$noRecord = $True
+							$PRvMan = $WinGetOutput
+						};
+					};
+
+
+					if (($Approve -eq "-!") -or 
+					($Auth -eq "-!") -or 
+					($AnF -eq "-") -or 
+					($InstVer -eq "-!") -or 
+					($prAuth -eq "-!") -or 
+					($Review -ne "R") -or 
+					($ListingDiff -eq "-!") -or 
+					($NumVersions -eq 1) -or 
+					($NumVersions -eq "L") -or 
+					($WordFilter -eq "-!") -or 
+					($AgreementAccept -eq "-!") -or 
+					($PRvMan -eq "N")) {
+					#-or ($PRvMan -match "^Error")
+						$matchColor = $cautionColor
+						$Approve = "-!"
+						$noRecord = $True
+					}
+					if ($WhatIf) {
+						$Approve += "W"
+					} 
+
+					$PRvMan = Get-PadRight $PRvMan 14
+					Write-Host -nonewline -f $matchColor "$PRvMan | "
+					$matchColor = $validColor
+
+
+
+
+
+					if ($PrePipeline -eq $false) {
+						if ($Approve -eq "+") {
+							if (!$WhatIf) {
+								$Approve = Approve-PR -PR $PR
+								Add-PRToRecord -PR $PR -Action $Actions.Approved -Title $PRtitle
+							}
+						}
+					}
+
+					Write-Host -nonewline -f $matchColor "$Approve | "
+					Write-Host -f $matchColor ""
+
+					$oldclip = $PRtitle
+				}; #end if Compare-Object
+			}; #end if PRtitle
+		}; #end foreach PR
+		Write-Host "Sleeping for $SecondsBetweenRuns seconds."
+		Start-Sleep $SecondsBetweenRuns
+	}; #end while True
 }; #end function
 
 Function Get-RunPRWatchAutomation {
@@ -1858,7 +1875,8 @@ Function Get-RunPRWatchAutomation {
 Function Get-WorkSearch {
 	param(
 		$PresetList = @("ToWork"),#Approval","
-		$Days = 7
+		$Days = 7,
+		[switch]$OpenInBrowser
 	)
 	Foreach ($Preset in $PresetList) {
 		$Page = 1
@@ -1902,12 +1920,16 @@ Function Get-WorkSearch {
 							if ($LastState.event -eq "PreValidation") { 
 								Get-GitHubPreset -Preset LabelAction -PR $PR
 							}
-							Open-PRInBrowser -PR $PR
+							if ($OpenInBrowser) {
+								Open-PRInBrowser -PR $PR
+							}
 						}
 					}#end if LastCommenter
 				}#end if Preset
 			}#end foreach FullPR
-			Read-Host "$(Get-Date -f T) $Preset Page $Page complete with $Count Results - press ENTER to continue..."
+			if ($OpenInBrowser) {
+				Read-Host "$(Get-Date -f T) $Preset Page $Page complete with $Count Results - press ENTER to continue..."
+			}
 			$Page++
 		}#end While Count
 	}#end Foreach Preset
@@ -2088,7 +2110,7 @@ Function Get-GitHubPreset {
 				$out += Add-Waiver -PR $PR; 
 			}
 			"WorkSearch" {
-				Get-WorkSearch
+				Get-WorkSearch -OpenInBrowser
 			}
 		}
 	} else {
@@ -2271,8 +2293,10 @@ Function Get-PRLabelAction { #Soothing label action.
 					}
 				}
 				$Labels.NMM {
-					Approve-PR -PR $PR
-					Get-MergePR -PR $PR
+					if ($PRLabels -notcontains $Labels.BI) {
+						Approve-PR -PR $PR
+						Get-MergePR -PR $PR
+					}
 				}
 				$Labels.NP {
 					if ((($PRLabels -join " ") -notmatch $Labels.MA)) {
@@ -2378,11 +2402,24 @@ Function Get-ScheduledRun {
 		} else {
 			Write-Host "Report for $YesterdayFormatted not found."
 			Get-PRFullReport -Today $YesterdayFormatted
+			Get-
 		}
 		
 		Get-StaleVMCheck
 		
-		$PresetList = ("Defender","Domain","Duplicate","HVR","IEDS","LVR","MMC","NMM","ToWork3","Approval","Approval2","VCMA")
+		$PresetList2 = $labels.VIE, $Labels.VEE, $labels.VSE, $labels.VD, $labels.VUU, $Labels.PT12, $Labels.PT23, $Labels.PT27;
+		foreach ($Preset in $PresetList2) {
+			$Results = (Get-SearchGitHub -Preset None -Label $Preset).number; 
+			Write-Output "$(Get-Date -Format T) Starting $Preset with $($Results.length) Results"
+			if ($Results) {
+				foreach ($Result in $Results) {
+					Get-PRLabelAction -PR $Result
+				}
+			}#end if Results12
+			Write-Output "$(Get-Date -Format T) Completing $Preset with $($Results.length) Results"
+		}#End for preset
+
+		$PresetList = ("Defender","Duplicate","HVR","IEDS","LVR","MMC","NMM","ToWork3","Approval","VCMA")
 		foreach ($Preset in $PresetList) {
 			$Results = (Get-SearchGitHub -Preset $Preset -nBMM).number
 			Write-Output "$(Get-Date -Format T) Starting $Preset with $($Results.length) Results"
@@ -2417,7 +2454,6 @@ Function Get-ScheduledRun {
 			Write-Output "$(Get-Date -Format T) Completing $Preset with $($Results.length) Results"
 		}#End for preset
 		
-		
 		Write-Output "$(Get-Date -Format T) Starting PushMePRYou with $($PushMePRWho.count) Results"
 		$PushMePRWho | %{write-host $_.Author;Get-PushMePRYou -Author $_.Author -MatchString $_.MatchString}
 		Write-Output "$(Get-Date -Format T) Completing PushMePRYou with $($PushMePRWho.count) Results"
@@ -2431,13 +2467,17 @@ Function Get-StaleVMCheck {
 	$CheckVMStatus = ($VMStatus | where {$_.status -ne "Ready"})
 	Write-Output "$(Get-Date -Format T) Starting stale VM check with $($CheckVMStatus.count) Results"
 	foreach ($vm in $CheckVMStatus) {
-		$PRState = Invoke-GitHubPRRequest -PR $VM.pr -Type "" -Output Content;
-		$PRLabels = ((Invoke-GitHubPRRequest -PR $PR -Type "labels" -Output content -JSON).name)
-		if (($PRState.state -ne "open") -OR
-			(($PRLabels -join " ") -match $Labels.CR)){
-			Get-TrackerVMSetStatus -Status Complete -VM $VM.vm
-		}
-	}
+		if ($VM.pr -ne 1) {
+			$PRState = Invoke-GitHubPRRequest -PR $VM.pr -Type "" -Output Content;
+			$PRLabels = ((Invoke-GitHubPRRequest -PR $VM.pr -Type "labels" -Output content -JSON).name)
+			if ($null -ne (Invoke-GitHubPRRequest -PR $VM.pr -Type "" -Output Content).state) {
+				if (($PRState.state -ne "open") -OR
+					(($PRLabels -join " ") -match $Labels.CR)){
+					Get-TrackerVMSetStatus -Status Complete -VM $VM.vm
+				} #end if PRState.state
+			} #end if null
+		} #end VM.pr
+	} #end foreach vm
 	Write-Output "$(Get-Date -Format T) Completing stale VM check with $($CheckVMStatus.count) Results"
 }
 
@@ -2479,11 +2519,11 @@ Function Get-LogFromCommitFile {
 Function Add-Waiver {
 	param(
 	$PR,
-	$Labels = ((Invoke-GitHubPRRequest -PR $PR -Type "labels" -Output content -JSON).name)
+	$LabelNames = ((Invoke-GitHubPRRequest -PR $PR -Type "labels" -Output content -JSON).name)
 	)
 	#$actions = "Manual","Waiver","Approved"
 	$actions = "Manual","Manual","Approved"
-	Foreach ($Label in $Labels) {
+	Foreach ($Label in $LabelNames) {
 		$Waiver = ""
 		Switch ($Label) {
 			$Labels.EAT {
@@ -2889,9 +2929,8 @@ Function Get-CannedMessage {
 			$out = "This might be due to user-agent throttling."
 		}
 		"AutoValEnd" {
-			$UserInput = $UserInput -join "`n"
-			$UserInput = "Automatic Validation ended with:`n```````n $UserInput`n```````n"
-			$out = Get-AutomatedErrorAnalysis $UserInput
+			$UserInput = Get-AutomatedErrorAnalysis ($UserInput -join "`n")
+			$out = "Automatic Validation ended with: `n$UserInput"
 		}
 		"DriverInstall" {
 			$out = "Hi $Username`n`nThe installation is unattended, but installs a driver which isn't unattended:`nUnfortunately, installer switches are not usually provided for this situation. Are you aware of an installer switch to have the driver silently install as well?"
@@ -2918,12 +2957,11 @@ Function Get-CannedMessage {
 			$out = "This PR omits these files that are present in the current manifest:`n> $UserInput"
 		}
 		"ManifestVersion" {
-			$out = "Hi $Username`n`nWe don't often see the `1.0.0` manifest version anymore. Would it be possible to upgrade this to the [1.5.0]($GitHubBaseUrl/tree/master/doc/manifest/schema/1.5.0) version, possibly through a tool such as [WinGetCreate](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest?tabs=minschema%2Cversion-example), [YAMLCreate]($GitHubBaseUrl/blob/master/Tools/YamlCreate.ps1), or [Komac](https://github.com/russellbanks/Komac)? "
+			$out = "Hi $Username`n`nWe don't often see the `1.0.0` manifest version anymore. Would it be possible to upgrade this to the [1.10.0]($GitHubBaseUrl/tree/master/doc/manifest/schema/1.10.0) version, possibly through a tool such as [WinGetCreate](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest?tabs=minschema%2Cversion-example), [YAMLCreate]($GitHubBaseUrl/blob/master/Tools/YamlCreate.ps1), or [Komac](https://github.com/russellbanks/Komac)? "
 		}
 		"ManValEnd" {
-			$UserInput = $UserInput -join "`n"
-			$UserInput = "Manual Validation ended with:`n```````n$UserInput`n```````n"
-			$out = Get-AutomatedErrorAnalysis $UserInput
+			$UserInput = Get-AutomatedErrorAnalysis $UserInput#( -join "`n")
+			$out = "Manual Validation ended with: `n$UserInput"
 		}
 		"MergeFail" {
 			$out = "Merging failed with:`n> $UserInput"
@@ -3010,25 +3048,32 @@ Function Get-AutomatedErrorAnalysis {
 	)
 
 	#$UserSplit = $UserInput -replace "0x","" -replace "[^\w]"," " -split " "
-	$UserSplit = $UserInput -replace "0x"," " -replace "\)"," " -split " "
+	$UserJoin = $UserInput -join " " -replace "`n","" -replace "`r",""
+	$UserSplit = $UserJoin -replace "0x"," " -replace "\)"," " -replace ">"," " -replace "<"," " -split " "
 	$UserSplit = $UserSplit | Sort-Object -Unique
+	[array]$UserArray = ($UserInput -join "`n")
 	
-	if ($UserInput -match "exit code" -OR 
-	$UserInput -match "DeliveryOptimization error" -OR 
-	$UserInput -match "Installer failed security check" -OR 
-	$UserInput -match "Error information") {
+	# write-host "UserJoin $UserJoin"
+	# write-host "UserInput $UserInput"
+	# write-host "UserArray $($UserArray -join '`n')"
+	
+	if ($UserJoin -match "exit code" -OR 
+	$UserJoin -match "DeliveryOptimization error" -OR 
+	$UserJoin -match "Installer failed security check" -OR 
+	$UserJoin -match "Error information") {
 		$ExitCodeTable = gc $ExitCodeFile | ConvertFrom-Csv
-		$UserInput += "$LineBreak $LineBreak | Hex | Dec | Inverted Dec | Symbol | Description | $LineBreak | --- | --- | --- | --- | --- | $LineBreak"
+
+		$UserArray += "$LineBreak $LineBreak | Hex | Dec | Inverted Dec | Symbol | Description | $LineBreak | --- | --- | --- | --- | --- | $LineBreak"
 		foreach ($ExitCode in $ExitCodeTable) {
 			foreach ($Word in $UserSplit) {
 				if (($Word -eq $ExitCode.Hex)  -OR ($Word -eq $ExitCode.Dec)  -OR ($Word -eq $ExitCode.InvDec) ) {
-					$UserInput += $Spacer + $ExitCode.Hex + $Spacer + $ExitCode.Dec + $Spacer + $ExitCode.InvDec + $Spacer + $ExitCode.Symbol + $Spacer + $ExitCode.Description + $Spacer + $LineBreak
+					$UserArray += $Spacer + $ExitCode.Hex + $Spacer + $ExitCode.Dec + $Spacer + $ExitCode.InvDec + $Spacer + $ExitCode.Symbol + $Spacer + $ExitCode.Description + $Spacer + $LineBreak
 					}# end if word
 				}# end foreach word
 			}#end foreach exitcode
 		}#end if userinput 
-	$UserInput = $UserInput | Select-Object -Unique
-	return $UserInput
+	$UserArray = $UserArray | Select-Object -Unique
+	return $UserArray
 }#end function 
 
 Function Get-AutoValLog {
@@ -3046,6 +3091,11 @@ Function Get-AutoValLog {
 		$notes = ""
 	)
 		$PRState = Get-PRStateFromComments $PR
+		$FileList = $null
+		[int]$BackoffSeconds = 0
+		[int]$Retries = 0
+		[int]$RetriesLimit = 10
+		
 		if ((!($PRState | where {$_.event -eq "AutoValEnd"})) -OR (($PRState | where {$_.event -eq "PreValidation"})[-1].created_at -gt ($PRState | where {$_.event -eq "AutoValEnd"})[-1].created_at) -OR ($Force)) { #Last Prevalidation was 8 hours ago.
 			$DownloadSeconds = 8;
 			$LowerOps = $true;
@@ -3054,9 +3104,6 @@ Function Get-AutoValLog {
 			$BuildNumber = Get-BuildFromPR -PR $PR 
 	
 		if ($BuildNumber -gt 0) {
-			$FileList = $null
-			[int]$BackoffSeconds = 0
-			
 			while ($FileList -eq $null) {
 				try {
 					#This downloads to Windows default location, which has already been set to $DestinationPath
@@ -3066,13 +3113,23 @@ Function Get-AutoValLog {
 					}
 					Start-Sleep $DownloadSeconds;
 					[bool]$IsZipPath = (Test-Path $ZipPath)
+					if ($WhatIf) {
+						write-host "IsZipPath $IsZipPath"
+					}
 					if (!$IsZipPath) {
-						#if (!$Force) {
-							$UserInput = "No logs."
-							$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
+						if ($Retries -ge $RetriesLimit) {
+							$UserInput = "No logs after $Retries retries."
+							if ($WhatIf) {
+								write-host "Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd"
+							} else {
+								$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
+							}
 							Write-Host $UserInput
-							Continue;
-						#}
+							Break;
+						} else {
+							Write-Host "Retry $Retries of $RetriesLimit"
+						}
+						$Retries++
 					} 
 					Remove-Item $LogPath -Recurse -ErrorAction Ignore
 					Expand-Archive $ZipPath -DestinationPath $DestinationPath;
@@ -3084,7 +3141,6 @@ Function Get-AutoValLog {
 				} catch {
 					if ($BackoffSeconds -gt 60) {
 						$UserInput = "Build $BuildNumber not found."
-						Continue;
 					}
 					$AddSeconds = Get-Random -min 1 -max 5
 					$BackoffSeconds += $AddSeconds
@@ -3115,11 +3171,15 @@ Function Get-AutoValLog {
 			if ($WhatIf) {
 				write-host "File $File - UserInput $UserInput Length $($UserInput.Length)"
 			}
-			$UserInput = $UserInput -split "`n" | Select-Object -Unique;
+			$UserInput = $UserInput  | Select-Object -Unique; #-split "`n"
 			$UserInput = $UserInput -replace "Standard error: ",$null
 			$UserReplace = $UserInput -replace "\\","\\" -replace "\[","\["-replace "\]","\]"-replace "\*","\*"-replace "\+","\+"
+			[bool]$isnotnull = ($null -notmatch $UserReplace)
+			if ($WhatIf) {
+				write-host "UserReplace 1 $UserReplace - notmatch null $isnotnull (true is populated, false is null)"
+			}
 
-			if ($null -notmatch ($UserReplace)) {
+			if ($isnotnull) {
 				if (($UserInput -match "Installer failed security check") -OR ($UserInput -match "Operation did not complete successfully because the file contains a virus or potentially unwanted software")) {
 					$LowerOps = $false
 					#$UserInput = Get-AutomatedErrorAnalysis $UserInput
@@ -3133,7 +3193,7 @@ Function Get-AutoValLog {
 					Open-PRInBrowser -PR $PR
 				}
 
-				$UserInput = $UserInput -split "`n"
+				# $UserInput = $UserInput -split "`n"
 				$UserInput = $UserInput -notmatch " success or error status`: 0"
 				$UserInput = $UserInput -notmatch "``Windows Error Reporting``"
 				$UserInput = $UserInput -notmatch "--- End of inner exception stack trace ---"
@@ -3163,16 +3223,20 @@ Function Get-AutoValLog {
 			}
 			$UserReplace = $UserInput -replace "\\","\\" -replace "\[","\["-replace "\]","\]"-replace "\*","\*"-replace "\+","\+"
 
-			if ($null -notmatch ($UserReplace)) {
+			[bool]$isnotnull = ($null -notmatch $UserReplace)
+			if ($WhatIf) {
+				write-host "UserReplace 2 $UserReplace - notmatch null $isnotnull (true is populated, false is null)"
+			}
+			if ($isnotnull) {
 				$UserInput = $UserInput | Select-Object -Unique
 
-				$UserInput = $UserInput -replace "-",$null
+				#$UserInput = $UserInput -replace " -",$null #What was this for again?
 				if ($WhatIf) {
-					Write-Host "WhatIf: Reply-ToPR (A) -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd"
+					Write-Host "WhatIf: Reply-ToPR (A) -PR $PR -UserInput $($UserInput -join `"`n> `") -CannedMessage AutoValEnd"
+					$out = Reply-ToPR -PR $PR -UserInput ($UserInput -join "`n> ") -CannedMessage AutoValEnd -WhatIf
 				} else {
-					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
+					$out = Reply-ToPR -PR $PR -UserInput ($UserInput -join "`n> ") -CannedMessage AutoValEnd
 				}
-
 
 				if ($LowerOps -eq $true) {
 					$SplitInput = ($UserInput -split "`n" )
@@ -3191,7 +3255,7 @@ Function Get-AutoValLog {
 					if(!(($UserInput -split "`n" ) -match $exitregex2)) { #4 digits bad
 						if(($UserInput -split "`n" ) -match $exitregex) { #1-3 digits good
 							if ($WhatIf) {
-								Write-Host "WhatIf: Get-CompletePR -PR $PR"
+								Write-Host "WhatIf: Get-CompletePR -PR $PR (A)"
 							} else {
 								Get-CompletePR -PR $PR
 							}
@@ -3208,11 +3272,12 @@ Function Get-AutoValLog {
 				}
 			} else {
 			if ($IsZipPath) {
-					$UserInput = "No errors to post."
+					$UserInput = "> No errors to post."
 					$Title = ((Invoke-GitHubPRRequest -PR $PR -Type "" -Output content -JSON).title);
 					if ($WhatIf) {
 						Write-Host "WhatIf: Reply-ToPR (B) -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd"
-						Write-Host "WhatIf: Get-CompletePR -PR $PR"
+						$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd -WhatIf
+						Write-Host "WhatIf: Get-CompletePR -PR $PR (B)"
 						Write-Host "WhatIf: Get-GitHubPreset -PR $PR Waiver"
 					} else {
 						$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
@@ -3229,20 +3294,28 @@ Function Get-AutoValLog {
 			if (!($Silent)) {
 				if ($WhatIf) {
 					Write-Host "WhatIf: Reply-ToPR (C) -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd"
+					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd -WhatIf
 					Write-Host "WhatIf: UserInput Length $($UserInput.Length)"
 				} else {
 					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
 				}
 				if ($WhatIf) {
 					Write-Host "WhatIf: Reply-ToPR (D) -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd"
+					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd -WhatIf
 				} else {
 					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
 				}
-				$UserInput = "Build $BuildNumber not found."
+				$UserInput = "`> Build $BuildNumber not found."
 				Write-Host $UserInput
-				$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
+				if ($WhatIf) {
+					Write-Host "WhatIf: Reply-ToPR (E) -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd"
+					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd -WhatIf
+				} else {
+					$out = Reply-ToPR -PR $PR -UserInput $UserInput -CannedMessage AutoValEnd
+				}
 			}
 		}
+			
 		return $out 
 	}
 }
@@ -3492,7 +3565,12 @@ Function Get-MergePR {
 	$Comments = (Invoke-GitHubPRRequest -PR $PR -Type comments -Output content)
 	if ($out -match "Error") {
 		if ($Comments[-1].UserName -ne $GitHubUserName) {
-			Reply-ToPR -PR $PR -UserInput $out -CannedMessage MergeFail
+		$LabelNames = ((Invoke-GitHubPRRequest -PR $PR -Type "labels" -Output content -JSON).name)
+			if ($LabelNames[-1].UserName -ne $GitHubUserName) {
+				if (($LabelNames -join " ") -notmatch $Labels.BI) {
+					Reply-ToPR -PR $PR -UserInput $out -CannedMessage MergeFail
+				} 
+			} 
 		}
 	}
 	$out
@@ -3613,7 +3691,8 @@ Function Reply-ToPR {
 		[string]$UserInput = ((Invoke-GitHubPRRequest -PR $PR -Type "" -Output content -JSON).user.login),
 		[string]$Body = (Get-CannedMessage $CannedMessage -UserInput $UserInput -NoClip),
 		[string]$Policy,
-		[Switch]$Silent
+		[Switch]$Silent,
+		[Switch]$WhatIf
 	)
 	if ($Policy) {
 		$Body += "`n<!--`n[Policy] $Policy`n-->"
@@ -3621,10 +3700,14 @@ Function Reply-ToPR {
 	# If (($CannedMessage -eq "AutoValEnd") -OR ($CannedMessage -eq "ManValEnd")) {
 		# $SharedError = Get-AutomatedErrorAnalysis $SharedError
 	# }
-	if ($Silent) {
-		Invoke-GitHubPRRequest -PR $PR -Method Post -Type "comments" -Data $Body -Output Silent
+	if ($WhatIf) {
+		Write-Host "WhatIf: Invoke-GitHubPRRequest -PR $PR -Method Post -Type 'comments' -Data $Body -Output StatusDescription"
 	} else {
-		Invoke-GitHubPRRequest -PR $PR -Method Post -Type "comments" -Data $Body -Output StatusDescription
+		if ($Silent) {
+			Invoke-GitHubPRRequest -PR $PR -Method Post -Type "comments" -Data $Body -Output Silent
+		} else {
+			Invoke-GitHubPRRequest -PR $PR -Method Post -Type "comments" -Data $Body -Output StatusDescription
+		}
 	}
 }
 
@@ -3776,14 +3859,18 @@ Function Get-Autowaiver {
 	if ($WaiverData) {
 		Add-PRToRecord -PR $PR -Action $Actions.Waiver
 		foreach ($Waiver in $WaiverData) {
-			try {
-				$PackageValue = (Get-YamlValue -StringName $Waiver.ManifestKey -clip $PRData)
-			} catch {}
-			if ($PackageValue -match $Waiver.ManifestValue) {
+			if ($Waiver.RemoveLabel -eq $Labels.PD) {
 				Get-RemovePRLabel -PR $PR -LabelName $Waiver.RemoveLabel
 				Get-RemovePRLabel -PR $pr -LabelName "Needs-Author-Feedback"
 				Get-RemovePRLabel -PR $pr -LabelName "Needs-Attention"
 				Get-AddPRLabel -PR $PR -LabelName Validation-Completed
+			} else {
+				try {
+					$PackageValue = (Get-YamlValue -StringName $Waiver.ManifestKey -clip $PRData)
+				} catch {}
+				if ($PackageValue -match $Waiver.ManifestValue) {
+					Reply-ToPR -PR $PR -body "@wingetbot waivers Add $($Waiver.RemoveLabel)"
+				}
 			}
 		}
 	}
@@ -3794,14 +3881,20 @@ Function Get-VerifyMMC {
 		[int]$PR = (Get-PRNumber $clip -Hash)
 	)
 	$Comments = (Invoke-GitHubPRRequest -PR $PR -Type comments -Output content | select created_at,@{n="UserName";e={$_.user.login -replace "\[bot\]"}},body)
-	[array]$MissingProperties = ($Comments.body | ? {$_ -match "=== manifests"}) -split "`n" | ?{ $_ -notmatch "=== manifests" -AND
-	 $_ -notmatch "Missing Properties" -AND
-	 $_ -notmatch "Icons" -AND
-	 $_ -notmatch "Platform" -AND
-	 $_ -notmatch "MinimumOSVersion" -AND
-	 $_ -notmatch "ReleaseNotes" -AND
-	 $_ -notmatch "ReleaseNotesUrl" -AND
-	 $_ -notmatch "ReleaseDate"}
+	
+	[array]$MissingProperties = ($Comments.body | ? {$_ -match "=== manifests"}) -split "`n" | ? { $_ -notmatch "=== manifests"-AND
+	  $_ -notmatch "Missing Properties" } #-AND
+	 # $_ -notmatch "Icons" -AND
+	 # $_ -notmatch "Platform" -AND
+	 # $_ -notmatch "MinimumOSVersion" -AND
+	 # $_ -notmatch "ReleaseNotes" -AND
+	 # $_ -notmatch "ReleaseNotesUrl" -AND
+	 # $_ -notmatch "ReleaseDate"}
+
+	[array]$MMCExceptionList = (gc $MMCExceptionListFile) -split "`n"
+	 foreach ($Exception in $MMCExceptionList) {
+		 $MissingProperties = $MissingProperties | ? { $_ -notmatch $Exception}
+	 }
 	if (!$MissingProperties) {
 		Get-RemovePRLabel -PR $PR -LabelName Manifest-Metadata-Consistency
 	}
@@ -5057,7 +5150,7 @@ Function Get-SendStatus {
 	$SharedError = $SharedError -replace "Exception(4)",""
 	$SharedError = $SharedError -replace "tid(f1c)",""
 	$SharedError = $SharedError -replace "C:\\__w\\1\\s\\external\\pkg\\src\\AppInstallerCommonCore\\Downloader.cpp(185)\\WindowsPackageManager.dll!00007FFA008A37C9:",""
-	$SharedError = $SharedError -join "`n"
+	$SharedError = $SharedError -join "`n> "
 	#$SharedError = Get-AutomatedErrorAnalysis $SharedError
 	if ((($SharedError -join " ") -match "Installer failed security check") -OR (($SharedError -join " ") -match "Detected 1 Defender")) {
 		Get-AddPRLabel -PR $PR -LabelName $Labels.VDE
@@ -5376,6 +5469,7 @@ Function Get-PRFullReport {
 		$HeaderList = ($Actions.Feedback,"Blocking","Waiver","Retry","Manual","Closed","Project","Squash","Approved")
 	)
 	Write-Host "Generating report for $Today"
+	Copy-Item -Path $LogFile -Destination "C:\ManVal\misc\$Today-Full.csv"
 	$null | Out-File $ReportName
 	$HeaderList | %{
 		$_ | Out-File $ReportName -Append;
