@@ -6,7 +6,7 @@
 #Notes: Utilities to streamline evaluating 3rd party PRs.
 
 
-$build = 1117
+$build = 1148
 $appName = "ManualValidationPipeline"
 Write-Host "$appName build: $build"
 $MainFolder = "C:\ManVal"
@@ -48,7 +48,7 @@ $Win10Folder = "$imagesFolder\Win10-Created053025-Original"
 $Win11Folder = "$imagesFolder\Win11-Created061225-Original"
 
 $GitHubBaseUrl = "https://github.com/$Owner/$Repo"
-$GitHubContentBaseUrl = "https://raw.githubusercontent.com//$Owner/$Repo"
+$GitHubContentBaseUrl = "https://raw.githubusercontent.com/$Owner/$Repo"
 $GitHubApiBaseUrl = "https://api.github.com/repos/$Owner/$Repo"
 $ADOMSBaseUrl = "https://dev.azure.com/shine-oss"
 $ADOMSGUID = "8b78618a-7973-49d8-9174-4360829d979b"
@@ -58,13 +58,17 @@ $VMUserName = "user" #Set to the internal username you're using in your VMs.
 $GitHubUserName = "stephengillie"
 $SystemRAM = (Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property capacity -Sum).sum /1gb
 $Host.UI.RawUI.WindowTitle = "Utility"
-$GitHubRateLimitDelay = 0.25 #seconds
+$GitHubRateLimitDelay = 0.3 #seconds
 
 $PRRegex = "[0-9]{5,6}"
 $hashPRRegex = "[#]"+$PRRegex
 $hashPRRegexEnd = $hashPRRegex+"$"
 $colonPRRegex = $PRRegex+"[:]"
 #"Manual Validation results for $PackageIdentifier version $PackageVersion on $Date"
+
+#https://dev.azure.com/shine-oss/8b78618a-7973-49d8-9174-4360829d979b/_apis/build/builds/193159/artifacts?artifactName=InstallationVerificationLogs&api-version=7.1&%24format=zip
+
+#Remove VMs not in 
 
 <#
 $package = "clang-uml"
@@ -155,6 +159,7 @@ $Labels.PD = "Possible-Duplicate"
 $Labels.PF = "Project-File"
 $Labels.PRE = "PullRequest-Error"
 $Labels.PT12 = "Policy-Test-1.2"
+$Labels.PT18 = "Policy-Test-1.8"
 $Labels.PT23 = "Policy-Test-2.3"
 $Labels.PT27 = "Policy-Test-2.7"
 $Labels.RB = "Reboot"
@@ -181,7 +186,7 @@ $Labels.VUF = "Validation-Unattended-Failed"
 $Labels.VUU = "Validation-Unapproved-URL"
 
 
-$PushMePRWho = "Author,MatchString`nspectopo,Mozilla.Firefox`ntrenly,Standardize formatting`nSpecterShell,Mozilla.Thunderbird" | ConvertFrom-Csv
+$PushMePRWho = "Author,MatchString`nspectopo,Mozilla.Firefox`ntrenly,Standardize formatting`nSpecterShell,Mozilla.Thunderbird`nspectopo,OpenJS" | ConvertFrom-Csv
 
 $QueueInputs = "No suitable installer found for manifest", #0
 "Caught std::exception: bad allocation", #1
@@ -192,24 +197,9 @@ $QueueInputs = "No suitable installer found for manifest", #0
 
 #First tab
 Function Get-TrackerVMRunTracker {
-	param(
-	[switch]$RunLatch
-	)
-	$HourLatch = $False
 	while ($True) {
 		$Host.UI.RawUI.WindowTitle = "Orchestration"
-		#Run once an hour at ~20 after.
-		if (([int](get-date -f mm) -eq 20) -OR ([int](get-date -f mm) -eq 50)) {
-			$HourLatch = $True
-		}
-		if ($RunLatch -eq $False) {
-			$HourLatch = $False
-		}
-		if ($HourLatch) {#Hourly Run functionality
-			Get-ScheduledRun 
-			$HourLatch = $False
-		}
-		
+
 		Clear-Host
 		$GetStatus = Get-Status
 		$GetStatus | Format-Table;
@@ -297,1563 +287,566 @@ Function Get-TrackerVMRunTracker {
 }
 
 #Second tab
+Function Get-TrackerVMScheduler {
+	$Now = get-date
+	while ($true) {
+		$Timestamp = (get-date -f s) -replace "T"," "
+		#Every 10 minutes.
+		if (([int](get-date -f mm) / 10) -eq 1) {
+			$WatchLatch = $True
+		}
+		if ($WatchLatch) {#PR Watch functionality
+			write-host "$Timestamp - PRWatch"
+			Get-PRWatch -LogFile C:\ManVal\misc\ApprovedPRs.txt -ReviewFile C:\repos\winget-pkgs\Tools\Review.csv -noNew
+			$WatchLatch = $False
+		}
+		
+		#Twice an hour at 20 and 50  after.
+		if (([int](get-date -f mm) -eq 20) -OR ([int](get-date -f mm) -eq 50)) {
+			$HourLatch = $True
+		}
+		if ($HourLatch) {#Hourly Run functionality
+			write-host "$Timestamp - ScheduledRun"
+			Get-ScheduledRun 
+			$HourLatch = $False
+		}
+		cls
+		write-host "$Timestamp - Waiting"
+		$Host.UI.RawUI.WindowTitle = "Waiting"
+		$GetStatus = Get-Status
+		$VMRAM = Get-ArraySum $GetStatus.RAM
+		$ramColor = "green"
+		if ($VMRAM -gt ($SystemRAM*0.5)) {
+			$ramColor = "red"
+		} elseif ($VMRAM -gt ($SystemRAM*.25)) {
+			$ramColor = "yellow"
+		}
+		Write-Host "VM RAM Total: " -nonewline
+		Write-Host -f $ramColor $VMRAM
+		$timeClockColor = "red"
+		if (Get-TimeRunning) {
+			$timeClockColor = "green"
+		}
+		$PRQueueCount = Get-PRQueueCount
+		Write-Host -nonewline "Build: $build - Hours worked: "
+		Write-Host -nonewline -f $timeClockColor (Get-HoursWorkedToday)
+		Write-Host  " - PRs in queue: $PRQueueCount - Hourly Run: $RunLatch"		
+		Start-Sleep 5		
+
+		$HourLatch = $False
+		$WatchLatch = $False
+	}; #end while true
+}; #end function
+
 Function Get-PRWatch {
 	[CmdletBinding()]
 	param(
 		[switch]$noNew,
-		[ValidateSet("Default","Warm","Cool","Random","Afghanistan","Albania","Algeria","American Samoa","Andorra","Angola","Anguilla","Antigua And Barbuda","Argentina","Armenia","Aruba","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bermuda","Bhutan","Bolivia","Bosnia And Herzegovina","Botswana","Bouvet Island","Brazil","Brunei Darussalam","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Cook Islands","Costa Rica","Croatia","Cuba","Curacao","Cyprus","Czechia","Cöte D'Ivoire","Democratic Republic Of The Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","French Polynesia","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Holy See (Vatican City State)","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","Niue","Norfolk Island","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Pitcairn Islands","Poland","Portugal","Qatar","Republic Of The Congo","Romania","Russian Federation","Rwanda","Saint Kitts And Nevis","Saint Lucia","Saint Vincent And The Grenadines","Samoa","San Marino","Sao Tome And Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syrian Arab Republic","Tajikistan","Tanzania, United Republic Of","Thailand","Togo","Tonga","Trinidad And Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe","Åland Islands")]$Chromatic = "Default",
 		$LogFile = ".\PR.txt",
 		$ReviewFile = ".\Review.csv",
 		$oldclip = "",
-		$SecondsBetweenRuns = 600,
 		$PrePipeline = $false,
+		[switch]$DirectMode,
+		[switch]$RunLatch,
 		$AuthList = (Get-ValidationData -Property authStrictness),
 		$AgreementsList = (Get-ValidationData -Property AgreementUrl),
 		$ReviewList = (Get-LoadFileIfExists $ReviewFile),
 		$clip = (Get-Clipboard),
+		[switch]$Patch,
 		[switch]$WhatIf
 	)
-	$Host.UI.RawUI.WindowTitle = "PR Watcher"#I'm a PR Watcher, watchin PRs go by. 
+	if ($WhatIf) {
+		$Host.UI.RawUI.WindowTitle = "(WhatIf) PR Watcher"#I'm a PR Watcher, watchin PRs go by. 
+	} else {
+		$Host.UI.RawUI.WindowTitle = "PR Watcher"#I'm a PR Watcher, watchin PRs go by. 
+	}
 	#if ((Get-Command Get-TrackerVMSetMode).name) {Get-TrackerVMSetMode "Approving"}
 
 	Write-Host " | Timestmp | $(Get-PadRight PR# 6) | $(Get-PadRight PackageIdentifier) | $(Get-PadRight prVersion 15) | A | R | G | W | F | I | D | V | $(Get-PadRight ManifestVer 14) | OK |"
 	Write-Host " | -------- | ----- | ------------------------------- | -------------- | - | - | - | - | - | - | - | - | ------------- | -- |"
 	$preset = "Approval2"
-
-	while($True -gt 0){
-		Write-Host "Gathering PR numbers for $preset"
-		$Results = (Get-SearchGitHub -Preset $preset -nBMM).number
-		Write-Host "Found $($results.count) PRs"
-		foreach ($PR in $Results) {
-			# $clip = $null
-			#$clip = (Get-Clipboard)
-			Write-Host "Processing PR $PR"
-			$clip = Get-PRManifest -pr $PR; 
-			# if ($null -ne $clip)
-			Write-Host "PR manifest length $($clip.count)"
-			#$PRtitle = $clip | Select-String ($hashPRRegexEnd);
-			$PRtitle = ((Invoke-GitHubPRRequest -PR $PR -Type "" -Output content -JSON).title);
-			Write-Host "PR title $PRTitle"
-			#$PR = ($PRtitle -split "#")[1]
+	$Run = $True
+	while($Run -eq $True){
+			if ($DirectMode) {
+				$clip = (Get-Clipboard)
+				$PRtitle = $clip | Select-String ($hashPRRegexEnd);
+				$Results = ($PRtitle -split "#")[1]
+			} else {
+				Write-Host "Gathering PR numbers for $preset"
+				$Results = (Get-SearchGitHub -Preset $preset -nBMM).number
+				Write-Host "Found $($results.count) PRs"
+			}
 			
+			foreach ($PR in $Results) {
+				if ($DirectMode) {
+				} else {
+					if ($Patch) {
+						$clip = Get-PRManifest -pr $PR -Patch; 
+					} else {
+						$clip = Get-PRManifest -pr $PR; 
+					}
+					$PRtitle = ((Invoke-GitHubPRRequest -PR $PR -Type "" -Output content -JSON).title);
+				}
+				
 			if ($PRtitle) {
 				if (Compare-Object $PRtitle $oldclip) {
-					# if ((Get-Command Get-Status).name) {
-						# (Get-Status | Where-Object {$_.status -eq "ValidationCompleted"} | Format-Table)
-					# }
-					$validColor = "green"
-					$invalidColor = "red"
-					$cautionColor = "yellow"
+						Write-Host "Processing PR $PR"
+						Write-Host "PR title $PRTitle"
+						Write-Host "PR manifest length $($clip.count)"
+						# if ((Get-Command Get-Status).name) {
+							# (Get-Status | Where-Object {$_.status -eq "ValidationCompleted"} | Format-Table)
+						# }
+						$validColor = "green"
+						$invalidColor = "red"
+						$cautionColor = "yellow"
 
-					Switch ($Chromatic) {
-						#Color schemes, to accomodate needs and also add variety.
-							"Default" {
-								$validColor = "Green"
-								$invalidColor = "Red"
-								$cautionColor = "Yellow"
-							}
-							"Warm" {
-								$validColor = "White"
-								$invalidColor = "Red"
-								$cautionColor = "Yellow"
-							}
-							"Cool" {
-								$validColor = "Green"
-								$invalidColor = "Blue"
-								$cautionColor = "Cyan"
-							}
-							"Random" {
-								$Chromatic = ($CountrySet | get-random)
-								Write-Host "Using CountrySet $Chromatic" -f green
-							}
-	#https://www.flagpictures.com/countries/flag-colors/
-	"Afghanistan"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Albania"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-	}
-	"Algeria"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"American Samoa"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Andorra"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Angola"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Anguilla"{
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Antigua And Barbuda"{
-		$invalidColor = "Red"
-		$validColor = "DarkGray"
-		$invalidColor = "Blue"
-		$validColor = "White"
-		$cautionColor = "Yellow"
-	}
-	"Argentina"{
-		$validColor = "White"
-		$cautionColor = "Cyan"
-	}
-	"Armenia"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "DarkYellow"
-	}
-	"Aruba"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Australia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Austria"{
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Azerbaijan"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Cyan"
-	}
-	"Bahamas"{
-		$validColor = "DarkGray"
-		$invalidColor = "Cyan"
-		$cautionColor = "Yellow"
-	}
-	"Bahrain"{
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Bangladesh"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-	}
-	"Barbados"{
-		$validColor = "DarkGray"
-		$invalidColor = "Blue"
-		$cautionColor = "DarkYellow"
-	}
-	"Belarus"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Belgium"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Belize"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Benin"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Bermuda"{
-		$invalidColor = "Red"
-	}
-	"Bhutan"{
-		$validColor = "DarkRed"
-		$invalidColor = "DarkYellow"
-		$cautionColor = "White"
-	}
-	"Bolivia"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Bosnia And Herzegovina"{
-		$invalidColor = "Blue"
-		$validColor = "White"
-		$cautionColor = "Yellow"
-	}
-	"Botswana"{
-		$validColor = "DarkGray"
-		$invalidColor = "White"
-		$cautionColor = "Cyan"
-	}
-	"Bouvet Island"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Brazil"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$cautionColor = "DarkYellow"
-	}
-	"Brunei Darussalam"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$validColor = "White"
-		$cautionColor = "Yellow"
-	}
-	"Bulgaria"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Burkina Faso"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Burundi"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Cabo Verde"{
-		$validColor = "White"
-		$invalidColor = "DarkYellow"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Cambodia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Cameroon"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Canada"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Central African Republic"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Chad"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Chile"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"China"{
-		$invalidColor = "Red"
-		$cautionColor = "DarkYellow"
-	}
-	"Colombia"{
-		$invalidColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Comoros"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Cook Islands"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Costa Rica"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Croatia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Cuba"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"CuraÃ§ao"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Cyprus"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-	}
-	"Czechia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"CÃ´te D'Ivoire"{
-		$validColor = "Green"
-		$invalidColor = "DarkYellow"
-		$cautionColor = "White"
-	}
-	"Democratic Republic Of The Congo"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Denmark"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Djibouti"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Cyan"
-	}
-	"Dominica"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Dominican Republic"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Ecuador"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Egypt"{
-		$validColor = "DarkGray"
-		$invalidColor = "DarkYellow"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"El Salvador"{
-		$validColor = "White"
-		$invalidColor = "DarkYellow"
-		$cautionColor = "Blue"
-	}
-	"Equatorial Guinea"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Eritrea"{
-		$validColor = "Green"
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Estonia"{
-		$validColor = "DarkGray"
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Eswatini"{
-		$validColor = "DarkGray"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Ethiopia"{
-		$validColor = "Green"
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Fiji"{
-		$validColor = "White"
-		$validColor = "DarkBlue"
-		$invalidColor = "DarkYellow"
-		$invalidColor = "Red"
-		$cautionColor = "Cyan"
-	}
-	"Finland"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-	}
-	"France"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"French Polynesia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$invalidColor = "Blue"
-		$cautionColor = "DarkYellow"
-	}
-	"Gabon"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Gambia"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Georgia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Germany"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "DarkYellow"
-	}
-	"Ghana"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Greece"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-	}
-	"Grenada"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Guatemala"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-	}
-	"Guinea"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Guinea-Bissau"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Guyana"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Haiti"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-	}
-	"Holy See (Vatican City State)"{
-		$validColor = "White"
-		$cautionColor = "Yellow"
-	}
-	"Honduras"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-	}
-	"Hong Kong" {
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Hungary"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Iceland"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"India"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Blue"
-		$cautionColor = "DarkYellow"
-	}
-	"Indonesia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Iran"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Iraq"{
-		$invalidColor = "Red"
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Ireland"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-	}
-	"Israel"{
-		$validColor = "White"
-		$invalidColor = "Blue"
-	}
-	"Italy"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Jamaica"{
-		$validColor = "Green"
-		$invalidColor = "DarkGray"
-		$cautionColor = "DarkYellow"
-	}
-	"Japan"{
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Jordan"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Kazakhstan"{
-		$cautionColor = "Yellow"
-		$invalidColor = "Blue"
-	}
-	"Kenya"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Kiribati"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$invalidColor = "Blue"
-		$cautionColor = "DarkYellow"
-	}
-	"Kuwait"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Kyrgyzstan"{
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Laos"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Latvia"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Lebanon"{
-		$invalidColor = "Red"
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Lesotho"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Liberia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Libya"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Liechtenstein"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-	}
-	"Lithuania"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Luxembourg"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Cyan"
-	}
-	"Macao" {
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Madagascar"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Malawi"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "DarkGray"
-	}
-	"Malaysia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$invalidColor = "DarkBlue"
-		$cautionColor = "Yellow"
-	}
-	"Maldives"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Mali"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Malta"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Marshall Islands"{
-		$invalidColor = "Blue"
-		$invalidColor = "DarkYellow"
-		$cautionColor = "White"
-	}
-	"Mauritania"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Mauritius"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$invalidColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Mexico"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Micronesia"{
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Moldova"{
-		$validColor = "Blue"
-		$invalidColor = "DarkYellow"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Monaco"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Mongolia"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Montenegro"{
-		$invalidColor = "Red"
-		$cautionColor = "DarkYellow"
-	}
-	"Morocco"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-	}
-	"Mozambique"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Myanmar"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-		$cautionColor = "White"
-	}
-	"Namibia"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Nauru"{
-		$invalidColor = "Blue"
-		$validColor = "White"
-		$cautionColor = "Yellow"
-	}
-	"Nepal"{
-		$validColor = "DarkRed"
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Netherlands"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"New Zealand"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Nicaragua"{
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Niger"{
-		$validColor = "Green"
-		$cautionColor = "White"
-		$cautionColor = "DarkYellow"
-	}
-	"Nigeria"{
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Niue"{
-		$validColor = "DarkYellow"
-	}
-	"Norfolk Island"{
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"North Korea"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"North Macedonia"{
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Norway"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Oman"{
-		$invalidColor = "Red"
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Pakistan"{
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Palau"{
-		$cautionColor = "Yellow"
-		$invalidColor = "Blue"
-	}
-	"Palestine"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Panama"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Papua New Guinea"{
-		$validColor = "DarkGray"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Paraguay"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Peru"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Philippines"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Pitcairn Islands"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$invalidColor = "Blue"
-		$cautionColor = "Brown"
-		$cautionColor = "Yellow"
-	}
-	"Poland"{
-		$validColor = "White"
-		$invalidColor = "Red"
-	}
-	"Portugal"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Qatar"{
-		$validColor = "DarkRed"
-		$cautionColor = "White"
-	}
-	"Republic Of The Congo"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Romania"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Russian Federation"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Rwanda"{
-		$validColor = "Green"
-		$invalidColor = "Cyan"
-		$cautionColor = "Yellow"
-	}
-	"Saint Kitts And Nevis"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Saint Lucia"{
-		$validColor = "DarkGray"
-		$validColor = "White"
-		$invalidColor = "Cyan"
-		$cautionColor = "Yellow"
-	}
-	"Saint Vincent And The Grenadines"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Samoa"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"San Marino"{
-		$validColor = "White"
-		$cautionColor = "Cyan"
-	}
-	"Sao Tome And Principe"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Saudi Arabia"{
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Senegal"{
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Serbia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Seychelles"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Sierra Leone"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Singapore"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Slovakia"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Slovenia"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$invalidColor = "Blue"
-		$cautionColor = "DarkYellow"
-		$cautionColor = "White"
-	}
-	"Solomon Islands"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Somalia"{
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"South Africa"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$invalidColor = "Blue"
-		$invalidColor = "DarkYellow"
-		$cautionColor = "White"
-	}
-	"South Korea"{
-		$validColor = "White"
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"South Sudan"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Spain"{
-		$invalidColor = "Red"
-		$invalidColor = "DarkYellow"
-	}
-	"Sri Lanka"{
-		$validColor = "Green"
-		$invalidColor = "DarkRed"
-		$cautionColor = "DarkYellow"
-	}
-	"Sudan"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Suriname"{
-		$validColor = "DarkYellow"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Sweden"{
-		$validColor = "Blue"
-		$invalidColor = "DarkYellow"
-	}
-	"Switzerland"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Syrian Arab Republic"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Tajikistan"{
-		$validColor = "DarkYellow"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Tanzania, United Republic Of"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$invalidColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Thailand"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Togo"{
-		$validColor = "Green"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Tonga"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Trinidad And Tobago"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Tunisia"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Turkey"{
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Turkmenistan"{
-		$validColor = "Green"
-		$cautionColor = "White"
-	}
-	"Tuvalu"{
-		$validColor = "DarkBlue"
-		$invalidColor = "DarkYellow"
-		$invalidColor = "Red"
-		$cautionColor = "Cyan"
-		$cautionColor = "White"
-	}
-	"Uganda"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-		$cautionColor = "Yellow"
-	}
-	"Ukraine"{
-		$invalidColor = "Blue"
-		$invalidColor = "DarkYellow"
-	}
-	"United Arab Emirates"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"United Kingdom"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"United States"{
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Blue"
-	}
-	"Uruguay"{
-		$invalidColor = "Blue"
-		$cautionColor = "White"
-	}
-	"Uzbekistan"{
-		$validColor = "Green"
-		$invalidColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Vanuatu"{
-		$validColor = "DarkGray"
-		$validColor = "Green"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Venezuela"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Vietnam"{
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Yemen"{
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "White"
-	}
-	"Zambia"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$invalidColor = "Red"
-		$cautionColor = "DarkYellow"
-	}
-	"Zimbabwe"{
-		$validColor = "Green"
-		$validColor = "DarkGray"
-		$validColor = "White"
-		$invalidColor = "Red"
-		$cautionColor = "Yellow"
-	}
-	"Ã…land Islands"{
-		$validColor = "Blue"
-		$invalidColor = "Red"
-		$cautionColor = "DarkYellow"
-	}
-							Default {
-								$validColor = "Green"
-								$invalidColor = "Red"
-								$cautionColor = "Yellow"
-							}
-						}; #end Switch Chromatic
+						$noRecord = $False
+						$title = $PRtitle -split ": "
+						if ($title[1]) {
+							$title = $title[1] -split " "
+						} else {
+							$title = $title -split " "
+						}
+						$Submitter = (($clip | Select-String "wants to merge") -split " ")[0]
+						$InstallerType = Get-YamlValue InstallerType
 
-					$noRecord = $False
-					$title = $PRtitle -split ": "
-					if ($title[1]) {
-						$title = $title[1] -split " "
-					} else {
-						$title = $title -split " "
-					}
-					$Submitter = (($clip | Select-String "wants to merge") -split " ")[0]
-					$InstallerType = Get-YamlValue InstallerType
-
-					#Split the title by spaces. Try extracting the version location as the next item after the word "version", and if that fails, use the 2nd to the last item, then 3rd to last, and 4th to last. For some reason almost everyone puts the version number as the last item, and GitHub appends the PR number.
-					$prVerLoc =($title | Select-String "version").linenumber
-					#Version is on the line before the line number, and this set indexes with 1 - but the following array indexes with 0, so the value is automatically transformed by the index mismatch.
-					try {
-						[System.Version]$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
-					} catch {
+						#Split the title by spaces. Try extracting the version location as the next item after the word "version", and if that fails, use the 2nd to the last item, then 3rd to last, and 4th to last. For some reason almost everyone puts the version number as the last item, and GitHub appends the PR number.
+						$prVerLoc =($title | Select-String "version").linenumber
+						#Version is on the line before the line number, and this set indexes with 1 - but the following array indexes with 0, so the value is automatically transformed by the index mismatch.
 						try {
-							$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
+							[System.Version]$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
 						} catch {
-								try {
-							[System.Version]$prVersion = Get-YamlValue PackageVersion $clip
+							try {
+								$prVersion = Get-YamlValue PackageVersion $clip -replace "'","" -replace '"',''
 							} catch {
-								if ($null -ne $PRVerLoc) {
 									try {
-										[System.Version]$prVersion = $title[$prVerLoc]
-									} catch {
-										[string]$prVersion = $title[$prVerLoc]
-									}
-								} else {
-								#Otherwise we have to go hunting for the version number.
-									try {
-										[System.Version]$prVersion = $title[-1]
-									} catch {
+								[System.Version]$prVersion = Get-YamlValue PackageVersion $clip
+								} catch {
+									if ($null -ne $PRVerLoc) {
 										try {
-											[System.Version]$prVersion = $title[-2]
+											[System.Version]$prVersion = $title[$prVerLoc]
+										} catch {
+											[string]$prVersion = $title[$prVerLoc]
+										}
+									} else {
+									#Otherwise we have to go hunting for the version number.
+										try {
+											[System.Version]$prVersion = $title[-1]
 										} catch {
 											try {
-												[System.Version]$prVersion = $title[-3]
+												[System.Version]$prVersion = $title[-2]
 											} catch {
 												try {
-													[System.Version]$prVersion = $title[-4]
+													[System.Version]$prVersion = $title[-3]
 												} catch {
-													#If it's not a semantic version, guess that it's the 2nd to last, based on the above logic.
-													[string]$prVersion = $title[-2]
+													try {
+														[System.Version]$prVersion = $title[-4]
+													} catch {
+														#If it's not a semantic version, guess that it's the 2nd to last, based on the above logic.
+														[string]$prVersion = $title[-2]
+													}
 												}
 											}
-										}
+										}; #end try
 									}; #end try
-								}; #end try
-							}; #end if null
+								}; #end if null
+							}; #end try
 						}; #end try
-					}; #end try
 
-					#Get the PackageIdentifier and alert if it matches the auth list.
-					$PackageIdentifier = ""
-					try {
-						$PackageIdentifier = Get-YamlValue PackageIdentifier $clip -replace '"',""
-					} catch {
-						$PackageIdentifier = (Get-CleanClip $PRtitle); -replace '"',""
-					}
-					$matchColor = $validColor
-
-
-
-
-
-					Write-Host -nonewline -f $matchColor " | $(Get-Date -Format T) | $PR | $(Get-PadRight $PackageIdentifier) | "
-
-					#Variable effervescence
-					$prAuth = "+"
-					$Auth = "A"
-					$Review = "R"
-					$WordFilter = "W"
-					$AgreementAccept = "G"
-					$AnF = "F"
-					$InstVer = "I"
-					$ListingDiff = "D"
-					$NumVersions = 99
-					$PRvMan = "P"
-					$Approve = "+"
-
-					$WinGetOutput = Find-WinGetPackage $PackageIdentifier | where {$_.id -eq $PackageIdentifier}
-					$ManifestVersion = $WinGetOutput.version
-					$ManifestVersionParams = ($ManifestVersion -split "[.]").count
-					$prVersionParams = ($prVersion -split "[.]").count
-
-
-					$AuthMatch = $AuthList | Where-Object {$_.PackageIdentifier -eq $PackageIdentifier}
-
-					if ($AuthMatch) {
-						$AuthAccount = $AuthMatch.GitHubUserName | Sort-Object -Unique
-					}
-
-					if ($null -eq $WinGetOutput) {
-						$PRvMan = "N"
-						$matchColor = $invalidColor
-						$Approve = "-!"
-						if ($noNew) {
-							$noRecord = $True
-						} else {
-							Add-PRToQueue -PR $PR
-							# if ($title[-1] -match $hashPRRegex) {
-								# if ((Get-Command Get-TrackerVMValidate).name) {
-									#Add-PRToQueue -PR $PR
-									# Get-TrackerVMValidate -Silent -InspectNew
-								# } else {
-									# Get-Sandbox ($title[-1] -replace"#","")
-								# }; #end if Get-Command
-							# }; #end if title
-						}; #end if noNew
-					}
-					Write-Host -nonewline -f $matchColor "$(Get-PadRight $PRVersion.toString() 14) | "
-					$matchColor = $validColor
-
-
-
-
-					if ($AuthMatch) {
-						$strictness = $AuthMatch.authStrictness | Sort-Object -Unique
-						$matchVar = ""
-						$matchColor = $cautionColor
-						$AuthAccount -split "/" | where {$_ -notmatch "Microsoft"} | %{
-							#write-host "This $_ Submitter $Submitter"
-							if ($_ -eq $Submitter) {
-								$matchVar = "matches"
-								$Auth = "+"
-								$matchColor = $validColor
-							}
-							foreach ($User in ((Invoke-GitHubPRRequest -PR $PR -Type reviews -Output Content).user.login | select -Unique)) {
-								if ($Submitter -match $User) {
-									$matchVar = "preapproved"
-									$Auth = "+"
-									$matchColor = $validColor
-								}
-							}
-							
-						}
-						
-						if ($matchVar -eq  "") {
-							$matchVar = "does not match"
-							$Auth = "-"
-							$matchColor = $invalidColor
-						}
-						if ($strictness -eq "must") {
-							$Auth += "!"
-						}
-					}
-					if ($Auth -eq "-!") {
-						if (!$WhatIf) {
-							Get-PRApproval -PR $PR -PackageIdentifier $PackageIdentifier
-						}
-					}
-					Write-Host -nonewline -f $matchColor "$Auth | "
-					$matchColor = $validColor
-
-
-
-
-
-					$ReviewMatch = $ReviewList | Where-Object {$_.PackageIdentifier -match $PackageIdentifier }
-					if ($ReviewMatch) {
-						$Review = $ReviewMatch.Reason | Sort-Object -Unique
-						$matchColor = $cautionColor
-					}
-
-					Write-Host -nonewline -f $matchColor "$Review | "
-					$matchColor = $validColor
-
-
-
-				#In list, matches PR - explicit pass
-				#In list, PR has no Installer.yaml - implicit pass
-				#In list, missing from PR - block
-				#In list, mismatch from PR - block
-				#Not in list or PR - pass
-				#Not in list, in PR - alert and pass?
-				#Check previous version for omission - depend on wingetbot for now.
-				$AgreementUrlFromList = ($AgreementsList | where {$_.PackageIdentifier -eq $PackageIdentifier}).AgreementUrl
-				if ($AgreementUrlFromList) {
-					$AgreementUrlFromClip = Get-YamlValue AgreementUrl $clip -replace '"',""
-					if ($AgreementUrlFromClip -eq $AgreementUrlFromList) {
-						#Explicit Approve - URL is present and matches.
-						$AgreementAccept = "+!"
-					} else {
-						#Explicit mismatch - URL is present and does not match, or URL is missing.
-						$AgreementAccept = "-!"
-						if (!$WhatIf) {
-							Reply-ToPR -PR $PR -CannedMessage AgreementMismatch -UserInput $AgreementUrlFromList -Silent
-						}
-					}
-				} else {
-					$AgreementAccept = "+"
-					#Implicit Approve - your AgreementsUrl is in another file. Can't modify what isn't there. 
-				}
-					Write-Host -nonewline -f $matchColor "$AgreementAccept | "
-					$matchColor = $validColor
-
-
-
-
-
-
-
-
-				if (($PRtitle -notmatch "Automatic deletion") -AND 
-				($PRtitle -notmatch "Delete") -AND 
-				($PRtitle -notmatch "Remove") -AND 
-				($AgreementAccept -notmatch "[+]")) {
-
-					$WordFilterMatch = $WordFilterList | ForEach-Object {($Clip -match $_) -notmatch "Url" -notmatch "Agreement"}
-
-					if ($WordFilterMatch) {
-						$WordFilter = "-!"
-						$Approve = "-!"
-						$matchColor = $invalidColor
-							if (!$WhatIf) {
-							Reply-ToPR -PR $PR -CannedMessage WordFilter -UserInput $WordFilterMatch -Silent
-						}
-					}
-				}
-					Write-Host -nonewline -f $matchColor "$WordFilter | "
-					$matchColor = $validColor
-
-
-
-
-
-					
-					if ($null -ne $WinGetOutput) {
-						if (($PRvMan -ne "N") -AND 
-						($PRtitle -notmatch (($DisplayVersionExceptionList) -join " ")) -AND 
-						($PRtitle -notmatch "Automatic deletion") -AND 
-						($PRtitle -notmatch "Delete") -AND 
-						($PRtitle -notmatch "Remove")) {
-							$DisplayVersion = Get-YamlValue DisplayVersion -clip $clip
-							$DeveloperIsAuthor = (((Get-YamlValue PackageIdentifier -clip $clip) -split ".") -eq $Submitter)
-							$InstallerMatch = ($InstallerUrl -split "/") -match $Submitter
-
-							if ($DisplayVersion) {
-								if ($DisplayVersion -eq $prVersion) {
-									$matchColor = $invalidColor
-									$AnF = "-"
-									if (!$WhatIf) {
-										Reply-ToPR -PR $PR -CannedMessage AppsAndFeaturesMatch -UserInput $Submitter -Policy $Labels.NAF -Silent
-										Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-									}
-								}
-							}
-							
-							# if (!($DeveloperIsAuthor)) {
-								# if ($InstallerMatch) {
-									# $matchColor = $invalidColor
-									# $AnF = "-"
-									# Reply-ToPR -PR $PR -CannedMessage InstallerMatchesSubmitter -UserInput $Submitter -Policy $Labels.NAF -Silent
-									# Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-								# }
-							# }
-						}
-					}
-
-					Write-Host -nonewline -f $matchColor "$AnF | "
-					$matchColor = $validColor
-
-
-
-
-						if (($PRvMan -ne "N") -AND 
-						($PRtitle -notmatch "Automatic deletion") -AND 
-						($PRtitle -notmatch "Delete") -AND 
-						($PRtitle -notmatch "Remove")) {
+						#Get the PackageIdentifier and alert if it matches the auth list.
+						[string]$PackageIdentifier = ""
 						try {
-							if ([bool]($clip -match "InstallerUrl")) {
-								$InstallerUrl = Get-YamlValue InstallerUrl -clip $clip
-								#write-host "InstallerUrl: $InstallerUrl $installerMatches prVersion: -PR $PRVersion" -f "blue"
-								$installerMatches = [bool]($InstallerUrl | Select-String $PRVersion)
-								if (!($installerMatches)) {
-									#Matches when the dots are removed from semantec versions in the URL.
-									$installerMatches2 = [bool]($InstallerUrl | Select-String ($prVersion -replace "[.]",""))
-									if (!($installerMatches2)) {
-										$matchColor = $invalidColor
-										$InstVer = "-"
+							$PackageIdentifier = Get-YamlValue PackageIdentifier $clip -replace '"',""
+						} catch {
+							$PackageIdentifier = (Get-CleanClip $PRtitle); -replace '"',""
+						}
+						$matchColor = $validColor
+
+
+
+
+
+						Write-Host -nonewline -f $matchColor " | $(Get-Date -Format T) | $PR | $(Get-PadRight $PackageIdentifier) | "
+
+						#Variable effervescence
+						$prAuth = "+"
+						$Auth = "A"
+						$Review = "R"
+						$WordFilter = "W"
+						$AgreementAccept = "G"
+						$AnF = "F"
+						$InstVer = "I"
+						$ListingDiff = "D"
+						$NumVersions = 99
+						$PRvMan = "P"
+						$Approve = "+"
+						
+						If ($PackageIdentifier.length -gt 3) {
+
+							$WinGetOutput = Find-WinGetPackage $PackageIdentifier | where {$_.id -eq $PackageIdentifier}
+							$ManifestVersion = $WinGetOutput.version
+							$ManifestVersionParams = ($ManifestVersion -split "[.]").count
+							$prVersionParams = ($prVersion -split "[.]").count
+
+
+							$AuthMatch = $AuthList | Where-Object {$_.PackageIdentifier -eq $PackageIdentifier}
+
+							if ($AuthMatch) {
+								$AuthAccount = $AuthMatch.GitHubUserName | Sort-Object -Unique
+							}
+
+							if ($null -eq $WinGetOutput) {
+								$PRvMan = "N"
+								$matchColor = $invalidColor
+								$Approve = "-!"
+								if ($noNew) {
+									$noRecord = $True
+								} else {
+									Add-PRToQueue -PR $PR
+									# if ($title[-1] -match $hashPRRegex) {
+										# if ((Get-Command Get-TrackerVMValidate).name) {
+											#Add-PRToQueue -PR $PR
+											# Get-TrackerVMValidate -Silent -InspectNew
+										# } else {
+											# Get-Sandbox ($title[-1] -replace"#","")
+										# }; #end if Get-Command
+									# }; #end if title
+								}; #end if noNew
+							}
+							Write-Host -nonewline -f $matchColor "$(Get-PadRight $PRVersion.toString() 14) | "
+							$matchColor = $validColor
+
+
+
+
+							if ($AuthMatch) {
+								$strictness = $AuthMatch.authStrictness | Sort-Object -Unique
+								$matchVar = ""
+								$matchColor = $cautionColor
+								$AuthAccount -split "/" | where {$_ -notmatch "Microsoft"} | %{
+									#write-host "This $_ Submitter $Submitter"
+									if ($_ -eq $Submitter) {
+										$matchVar = "matches"
+										$Auth = "+"
+										$matchColor = $validColor
 									}
+									foreach ($User in ((Invoke-GitHubPRRequest -PR $PR -Type reviews -Output Content).user.login | select -Unique)) {
+										if ($Submitter -match $User) {
+											$matchVar = "preapproved"
+											$Auth = "+"
+											$matchColor = $validColor
+										}
+									}
+									
+								}
+								
+								if ($matchVar -eq  "") {
+									$matchVar = "does not match"
+									$Auth = "-"
+									$matchColor = $invalidColor
+								}
+								if ($strictness -eq "must") {
+									$Auth += "!"
 								}
 							}
-						} catch {
-							$matchColor = $invalidColor
-							$InstVer = "-"
-						}; #end try
-					}; #end if PRvMan
-
-					try {
-						if (($prVersion = Get-YamlValue PackageVersion $clip) -match " ") {
-							$matchColor = $invalidColor
-							$InstVer = "-!"
-						}
-					}catch{
-						$null = (Get-Process) #This section intentionally left blank.
-					}
-
-					Write-Host -nonewline -f $matchColor "$InstVer | "
-					$matchColor = $validColor
-
-
-
-
-
-					if (($PRvMan -ne "N") -AND 
-					(($PRtitle -match "Automatic deletion") -OR 
-					($PRtitle -match "Delete") -OR 
-					($PRtitle -match "Remove"))) {#Removal PR
-						#$Versions = 
-						$NumVersions = ($WinGetOutput.AvailableVersions | sort).count
-						if (($prVersion -eq $ManifestVersion) -OR ($NumVersions -eq 1)) {
-							$matchColor = $invalidColor
-							if (!$WhatIf) {
-								Reply-ToPR -PR $PR -CannedMessage VersionCount -UserInput $Submitter -Silent -Policy "[Policy] $($Labels.NAF)`n[Policy] $($Labels.HVL)" -Output Silent
-								Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-								$NumVersions = "L"
-							}
-						}
-					} else {#Addition PR
-					<#
-						$GLD = (Get-ListingDiff $clip | Where-Object {$_.SideIndicator -eq "<="}).installer.yaml #Ignores when a PR adds files that didn't exist before.
-						if ($null -ne $GLD) {
-							if ($GLD -eq "Error") {
-								$ListingDiff = "E"
-								$matchColor = $invalidColor
-							} else {
-								$ListingDiff = "-!"
-								$matchColor = $cautionColor
+							if ($Auth -eq "-!") {
 								if (!$WhatIf) {
-									Reply-ToPR -PR $PR -CannedMessage ListingDiff -UserInput $GLD -Silent
-									Invoke-GitHubPRRequest -PR $PR -Method POST -Type comments -Data "[Policy] $Labels.NAF" -Output Silent
-									Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
-								}#if Whatif
-							}#end if GLD
-						}#end if null
-					#>
-					}#end if PRvMan
-					Write-Host -nonewline -f $matchColor "$ListingDiff | "
-					Write-Host -nonewline -f $matchColor "$NumVersions | "
-					$matchColor = $validColor
+									Get-PRApproval -PR $PR -PackageIdentifier $PackageIdentifier
+								}
+							}
+							Write-Host -nonewline -f $matchColor "$Auth | "
+							$matchColor = $validColor
 
 
 
 
 
-					if ($PRvMan -ne "N") {
-						if ($null -eq $PRVersion -or "" -eq $PRVersion) {
-							$noRecord = $True
-							$PRvMan = "Error:prVersion"
-							$matchColor = $invalidColor
-						} elseif ($ManifestVersion -eq "Unknown") {
-							$noRecord = $True
-							$PRvMan = "Error:ManifestVersion"
-							$matchColor = $invalidColor
-						} elseif ($null -eq $ManifestVersion) {
-							$noRecord = $True
-							$PRvMan = $WinGetOutput
-							$matchColor = $invalidColor
-						} elseif ($prVersion -gt $ManifestVersion) {
-							$PRvMan = $ManifestVersion.toString()
-						} elseif ($prVersion -lt $ManifestVersion) {
-							$PRvMan = $ManifestVersion.toString()
-							$matchColor = $cautionColor
-						} elseif ($prVersion -eq $ManifestVersion) {
-							$PRvMan = "="
+							$ReviewMatch = $ReviewList | Where-Object {$_.PackageIdentifier -match $PackageIdentifier }
+							if ($ReviewMatch) {
+								$Review = $ReviewMatch.Reason | Sort-Object -Unique
+								$matchColor = $cautionColor
+							}
+
+							Write-Host -nonewline -f $matchColor "$Review | "
+							$matchColor = $validColor
+
+
+
+						#In list, matches PR - explicit pass
+						#In list, PR has no Installer.yaml - implicit pass
+						#In list, missing from PR - block
+						#In list, mismatch from PR - block
+						#Not in list or PR - pass
+						#Not in list, in PR - alert and pass?
+						#Check previous version for omission - depend on wingetbot for now.
+						$AgreementUrlFromList = ($AgreementsList | where {$_.PackageIdentifier -eq $PackageIdentifier}).AgreementUrl
+						if ($AgreementUrlFromList) {
+							$AgreementUrlFromClip = Get-YamlValue AgreementUrl $clip -replace '"',""
+							if ($AgreementUrlFromClip -eq $AgreementUrlFromList) {
+								#Explicit Approve - URL is present and matches.
+								$AgreementAccept = "+!"
+							} else {
+								#Explicit mismatch - URL is present and does not match, or URL is missing.
+								$AgreementAccept = "-!"
+								if (!$WhatIf) {
+									Reply-ToPR -PR $PR -CannedMessage AgreementMismatch -UserInput $AgreementUrlFromList -Silent
+								}
+							}
 						} else {
-							$noRecord = $True
-							$PRvMan = $WinGetOutput
-						};
-					};
-
-
-					if (($Approve -eq "-!") -or 
-					($Auth -eq "-!") -or 
-					($AnF -eq "-") -or 
-					($InstVer -eq "-!") -or 
-					($prAuth -eq "-!") -or 
-					($Review -ne "R") -or 
-					($ListingDiff -eq "-!") -or 
-					($NumVersions -eq 1) -or 
-					($NumVersions -eq "L") -or 
-					($WordFilter -eq "-!") -or 
-					($AgreementAccept -eq "-!") -or 
-					($PRvMan -eq "N")) {
-					#-or ($PRvMan -match "^Error")
-						$matchColor = $cautionColor
-						$Approve = "-!"
-						$noRecord = $True
-					}
-					if ($WhatIf) {
-						$Approve += "W"
-					} 
-
-					$PRvMan = Get-PadRight $PRvMan 14
-					Write-Host -nonewline -f $matchColor "$PRvMan | "
-					$matchColor = $validColor
+							$AgreementAccept = "+"
+							#Implicit Approve - your AgreementsUrl is in another file. Can't modify what isn't there. 
+						}
+							Write-Host -nonewline -f $matchColor "$AgreementAccept | "
+							$matchColor = $validColor
 
 
 
 
 
-					if ($PrePipeline -eq $false) {
-						if ($Approve -eq "+") {
-							if (!$WhatIf) {
-								$Approve = Approve-PR -PR $PR
-								Add-PRToRecord -PR $PR -Action $Actions.Approved -Title $PRtitle
+
+
+
+						if (($PRtitle -notmatch "Automatic deletion") -AND 
+						($PRtitle -notmatch "Delete") -AND 
+						($PRtitle -notmatch "Remove") -AND 
+						($AgreementAccept -notmatch "[+]")) {
+
+							$WordFilterMatch = $WordFilterList | ForEach-Object {($Clip -match $_) -notmatch "Url" -notmatch "Agreement"}
+
+							if ($WordFilterMatch) {
+								$WordFilter = "-!"
+								$Approve = "-!"
+								$matchColor = $invalidColor
+									if (!$WhatIf) {
+									Reply-ToPR -PR $PR -CannedMessage WordFilter -UserInput $WordFilterMatch -Silent
+								}
 							}
 						}
-					}
+							Write-Host -nonewline -f $matchColor "$WordFilter | "
+							$matchColor = $validColor
 
-					Write-Host -nonewline -f $matchColor "$Approve | "
-					Write-Host -f $matchColor ""
 
-					$oldclip = $PRtitle
-				}; #end if Compare-Object
-			}; #end if PRtitle
-		}; #end foreach PR
-		Write-Host "Sleeping for $SecondsBetweenRuns seconds."
-		Start-Sleep $SecondsBetweenRuns
-	}; #end while True
+
+
+
+							
+							if ($null -ne $WinGetOutput) {
+								if (($PRvMan -ne "N") -AND 
+								($PRtitle -notmatch (($DisplayVersionExceptionList) -join " ")) -AND 
+								($PRtitle -notmatch "Automatic deletion") -AND 
+								($PRtitle -notmatch "Delete") -AND 
+								($PRtitle -notmatch "Remove")) {
+									$DisplayVersion = Get-YamlValue DisplayVersion -clip $clip
+									$DeveloperIsAuthor = (((Get-YamlValue PackageIdentifier -clip $clip) -split ".") -eq $Submitter)
+									$InstallerMatch = ($InstallerUrl -split "/") -match $Submitter
+
+									if ($DisplayVersion) {
+										if ($DisplayVersion -eq $prVersion) {
+											$matchColor = $invalidColor
+											$AnF = "-"
+											if (!$WhatIf) {
+												Reply-ToPR -PR $PR -CannedMessage AppsAndFeaturesMatch -UserInput $Submitter -Policy  "[Policy] $($Labels.NAF)`n[Policy] $($Labels.CR)" -Silent
+												Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+											}
+										}
+									}
+									
+									# if (!($DeveloperIsAuthor)) {
+										# if ($InstallerMatch) {
+											# $matchColor = $invalidColor
+											# $AnF = "-"
+											# Reply-ToPR -PR $PR -CannedMessage InstallerMatchesSubmitter -UserInput $Submitter -Policy $Labels.NAF -Silent
+											# Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+										# }
+									# }
+								}
+							}
+
+							Write-Host -nonewline -f $matchColor "$AnF | "
+							$matchColor = $validColor
+
+
+
+
+								if (($PRvMan -ne "N") -AND 
+								($PRtitle -notmatch "Automatic deletion") -AND 
+								($PRtitle -notmatch "Delete") -AND 
+								($PRtitle -notmatch "Remove")) {
+								try {
+									if ([bool]($clip -match "InstallerUrl")) {
+										$InstallerUrl = Get-YamlValue InstallerUrl -clip $clip
+										#write-host "InstallerUrl: $InstallerUrl $installerMatches prVersion: -PR $PRVersion" -f "blue"
+										$installerMatches = [bool]($InstallerUrl | Select-String $PRVersion)
+										if (!($installerMatches)) {
+											#Matches when the dots are removed from semantec versions in the URL.
+											$installerMatches2 = [bool]($InstallerUrl | Select-String ($prVersion -replace "[.]",""))
+											if (!($installerMatches2)) {
+												$matchColor = $invalidColor
+												$InstVer = "-"
+											}
+										}
+									}
+								} catch {
+									$matchColor = $invalidColor
+									$InstVer = "-"
+								}; #end try
+							}; #end if PRvMan
+
+							try {
+								if (($prVersion = Get-YamlValue PackageVersion $clip) -match " ") {
+									$matchColor = $invalidColor
+									$InstVer = "-!"
+								}
+							}catch{
+								$null = (Get-Process) #This section intentionally left blank.
+							}
+
+							Write-Host -nonewline -f $matchColor "$InstVer | "
+							$matchColor = $validColor
+
+
+
+
+
+							if (($PRvMan -ne "N") -AND 
+							(($PRtitle -match "Automatic deletion") -OR 
+							($PRtitle -match "Delete") -OR 
+							($PRtitle -match "Remove"))) {#Removal PR
+								#$Versions = 
+								$NumVersions = ($WinGetOutput.AvailableVersions | sort).count
+								if (($prVersion -eq $ManifestVersion) -OR ($NumVersions -eq 1)) {
+									$matchColor = $invalidColor
+									if ($WhatIf) {
+										"Reply-ToPR -PR $PR -CannedMessage VersionCount -UserInput $Submitter -Silent -Policy '[Policy] $($Labels.NAF)`n[Policy] $($Labels.HVL)' -Output Silent"
+										"Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle"
+									} else  {
+										Reply-ToPR -PR $PR -CannedMessage VersionCount -UserInput $Submitter -Silent -Policy "[Policy] $($Labels.NAF)`n[Policy] $($Labels.HVL)" -Output Silent
+										Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+										$NumVersions = "L"
+									}
+								}
+							} else {#Addition PR
+							<#
+								$GLD = (Get-ListingDiff $clip | Where-Object {$_.SideIndicator -eq "<="}).installer.yaml #Ignores when a PR adds files that didn't exist before.
+								if ($null -ne $GLD) {
+									if ($GLD -eq "Error") {
+										$ListingDiff = "E"
+										$matchColor = $invalidColor
+									} else {
+										$ListingDiff = "-!"
+										$matchColor = $cautionColor
+										if (!$WhatIf) {
+											Reply-ToPR -PR $PR -CannedMessage ListingDiff -UserInput $GLD -Silent
+											Invoke-GitHubPRRequest -PR $PR -Method POST -Type comments -Data "[Policy] $Labels.NAF" -Output Silent
+											Add-PRToRecord -PR $PR -Action $Actions.Feedback -Title $PRtitle
+										}#if Whatif
+									}#end if GLD
+								}#end if null
+							#>
+							}#end if PRvMan
+							Write-Host -nonewline -f $matchColor "$ListingDiff | "
+							Write-Host -nonewline -f $matchColor "$NumVersions | "
+							$matchColor = $validColor
+
+
+
+
+
+							if ($PRvMan -ne "N") {
+								if ($null -eq $PRVersion -or "" -eq $PRVersion) {
+									$noRecord = $True
+									$PRvMan = "Error:prVersion"
+									$matchColor = $invalidColor
+								} elseif ($ManifestVersion -eq "Unknown") {
+									$noRecord = $True
+									$PRvMan = "Error:ManifestVersion"
+									$matchColor = $invalidColor
+								} elseif ($null -eq $ManifestVersion) {
+									$noRecord = $True
+									$PRvMan = $WinGetOutput
+									$matchColor = $invalidColor
+								} elseif ($prVersion -gt $ManifestVersion) {
+									$PRvMan = $ManifestVersion.toString()
+								} elseif ($prVersion -lt $ManifestVersion) {
+									$PRvMan = $ManifestVersion.toString()
+									$matchColor = $cautionColor
+								} elseif ($prVersion -eq $ManifestVersion) {
+									$PRvMan = "="
+								} else {
+									$noRecord = $True
+									$PRvMan = $WinGetOutput
+								};
+							};
+						} else {
+							$Approve = "-!"
+							$Auth = "-!"
+							$AnF = "F"
+							$InstVer = "I"
+							$prAuth = "-!"
+							$Review = "R"
+							$ListingDiff = "D"
+							$NumVersions = 99
+							$WordFilter = "W"
+							$AgreementAccept = "G"
+							$PRvMan = "P"
+							Open-PRInBrowser -PR $pr
+						}
+
+
+						if (($Approve -eq "-!") -or 
+						($Auth -eq "-!") -or 
+						($AnF -eq "-") -or 
+						($InstVer -eq "-!") -or 
+						($prAuth -eq "-!") -or 
+						($Review -ne "R") -or 
+						($ListingDiff -eq "-!") -or 
+						($NumVersions -eq 1) -or 
+						($NumVersions -eq "L") -or 
+						($WordFilter -eq "-!") -or 
+						($AgreementAccept -eq "-!") -or 
+						($PRvMan -eq "N")) {
+						#-or ($PRvMan -match "^Error")
+							$matchColor = $cautionColor
+							$Approve = "-!"
+							$noRecord = $True
+						}
+						if ($WhatIf) {
+							$Approve += "W"
+						} 
+
+						$PRvMan = Get-PadRight $PRvMan 14
+						Write-Host -nonewline -f $matchColor "$PRvMan | "
+						$matchColor = $validColor
+
+
+
+
+
+						if ($PrePipeline -eq $false) {
+							if ($Approve -eq "+") {
+								if (!$WhatIf) {
+									$Approve = Approve-PR -PR $PR
+									Add-PRToRecord -PR $PR -Action $Actions.Approved -Title $PRtitle
+								}
+							}
+						}
+
+						Write-Host -nonewline -f $matchColor "$Approve | "
+						Write-Host -f $matchColor ""
+
+						$oldclip = $PRtitle
+					}; #end if Compare-Object
+				}; #end if PRtitle
+			}; #end foreach PR
+			if ($DirectMode) {
+				$SecondsBetweenRuns = 1
+				#Write-Host "Sleeping for $SecondsBetweenRuns seconds."
+				Start-Sleep $SecondsBetweenRuns
+
+			} else {
+				$Run = $False
+			}
+		}; #end while true eq run
 }; #end function
 
 Function Get-RunPRWatchAutomation {
@@ -1876,10 +869,10 @@ Function Get-WorkSearch {
 	param(
 		$PresetList = @("ToWork"),#Approval","
 		$Days = 7,
+		$Page = 1,
 		[switch]$OpenInBrowser
 	)
 	Foreach ($Preset in $PresetList) {
-		$Page = 1
 		While ($true) {
 			$line = 0
 			$PRs = (Get-SearchGitHub -Preset $Preset -Page $Page -NoLabels -nBMM) 
@@ -1932,6 +925,7 @@ Function Get-WorkSearch {
 			}
 			$Page++
 		}#end While Count
+		$Page = 1
 	}#end Foreach Preset
 	Write-Progress -Activity $MyInvocation.MyCommand -Completed
 }#end Get-WorkSearch
@@ -2222,7 +1216,7 @@ Function Get-PRLabelAction { #Soothing label action.
 					}
 				}
 				$Labels.IEDS {
-					Get-AutoValLog -PR $PR
+					#Get-AutoValLog -PR $PR
 					Add-PRToQueue -PR $PR
 				}
 				$Labels.IEM {
@@ -2388,7 +1382,7 @@ Function Get-PRLabelAction { #Soothing label action.
 }
 
 Function Get-ScheduledRun {
-		[console]::beep(500,250);[console]::beep(500,250);[console]::beep(500,250) #Beep 3x to alert the PC user.
+		# [console]::beep(500,250);[console]::beep(500,250);[console]::beep(500,250) #Beep 3x to alert the PC user.
 		$Host.UI.RawUI.WindowTitle = "Periodic Run"
 		
 		#Check for yesterday's report and create if missing. 
@@ -2402,18 +1396,26 @@ Function Get-ScheduledRun {
 		} else {
 			Write-Host "Report for $YesterdayFormatted not found."
 			Get-PRFullReport -Today $YesterdayFormatted
-			Get-
+			Get-CleanPRExcludeFile
+			Get-CleanPRFolder
 		}
 		
 		Get-StaleVMCheck
 		
-		$PresetList2 = $labels.VIE, $Labels.VEE, $labels.VSE, $labels.VD, $labels.VUU, $Labels.PT12, $Labels.PT23, $Labels.PT27;
+		$PresetList2 = $labels.VIE, $Labels.VEE, $labels.VSE, $labels.VD, $labels.VUU, $Labels.PT12, $Labels.PT18, $Labels.PT23, $Labels.PT27, "New-Package label:New-Manifest";
 		foreach ($Preset in $PresetList2) {
 			$Results = (Get-SearchGitHub -Preset None -Label $Preset).number; 
 			Write-Output "$(Get-Date -Format T) Starting $Preset with $($Results.length) Results"
 			if ($Results) {
 				foreach ($Result in $Results) {
-					Get-PRLabelAction -PR $Result
+					switch ($Preset) {
+						"New-Package label:New-Manifest" {
+							$Results | %{Get-RemovePRLabel -PR $_ -LabelName "New-Package"}
+						}
+						Default {
+							Get-PRLabelAction -PR $Result
+						}
+					}
 				}
 			}#end if Results12
 			Write-Output "$(Get-Date -Format T) Completing $Preset with $($Results.length) Results"
@@ -2453,6 +1455,9 @@ Function Get-ScheduledRun {
 			}#end if Results12
 			Write-Output "$(Get-Date -Format T) Completing $Preset with $($Results.length) Results"
 		}#End for preset
+		
+			Write-Output "$(Get-Date -Format T) Starting $Preset with $($Results.length) Results"
+
 		
 		Write-Output "$(Get-Date -Format T) Starting PushMePRYou with $($PushMePRWho.count) Results"
 		$PushMePRWho | %{write-host $_.Author;Get-PushMePRYou -Author $_.Author -MatchString $_.MatchString}
@@ -2654,9 +1659,9 @@ Function Get-SearchGitHub {
 	$nNRA = "-label:$($Labels.NRA)+"
 	$nNSA = "-label:$($Labels.NSA)+"
 	$NotPass = "-label:$($Labels.APP)+"#Hasn't psased pipelines
-	$nVC = "-"+$VC #Not Completed
 	$Recent = "updated:>$($date)+" 
 	$VC = "label:$($Labels.VC)+"#Completed
+	$nVC = "-"+$VC #Not Completed
 	$VD = "label:$($Labels.VD)+"
 	$VSA = "label:$($Labels.VSA)+"
 
@@ -2930,7 +1935,7 @@ Function Get-CannedMessage {
 		}
 		"AutoValEnd" {
 			$UserInput = Get-AutomatedErrorAnalysis ($UserInput -join "`n")
-			$out = "Automatic Validation ended with: `n$UserInput"
+			$out = "Automatic Validation ended with: `n> $UserInput"
 		}
 		"DriverInstall" {
 			$out = "Hi $Username`n`nThe installation is unattended, but installs a driver which isn't unattended:`nUnfortunately, installer switches are not usually provided for this situation. Are you aware of an installer switch to have the driver silently install as well?"
@@ -2960,8 +1965,8 @@ Function Get-CannedMessage {
 			$out = "Hi $Username`n`nWe don't often see the `1.0.0` manifest version anymore. Would it be possible to upgrade this to the [1.10.0]($GitHubBaseUrl/tree/master/doc/manifest/schema/1.10.0) version, possibly through a tool such as [WinGetCreate](https://learn.microsoft.com/en-us/windows/package-manager/package/manifest?tabs=minschema%2Cversion-example), [YAMLCreate]($GitHubBaseUrl/blob/master/Tools/YamlCreate.ps1), or [Komac](https://github.com/russellbanks/Komac)? "
 		}
 		"ManValEnd" {
-			$UserInput = Get-AutomatedErrorAnalysis $UserInput#( -join "`n")
-			$out = "Manual Validation ended with: `n$UserInput"
+			$UserInput = Get-AutomatedErrorAnalysis ($UserInput -join "`n")
+			$out = "Manual Validation ended with: `n> $UserInput"
 		}
 		"MergeFail" {
 			$out = "Merging failed with:`n> $UserInput"
@@ -3322,9 +2327,10 @@ Function Get-AutoValLog {
 
 Function Get-RandomIEDS {
 	param(
-		$VM = (Get-NextFreeVM),
+		[int]$VM = (Get-NextFreeVM),
 		$IEDSPRs =(Get-SearchGitHub -Preset IEDS -nBMM),
 		#$IEDSPRs =(Get-SearchGitHub -Preset ToWork3),
+		[ValidateSet("Win11")][string]$OS ="Win11",
 		$PR = ($IEDSPRs.number | where {$_ -notin (Get-Status).pr} | Get-Random),
 		$PRData = (Invoke-GitHubRequest "$GitHubApiBaseUrl/pulls/$pr" -JSON),
 		$PRTitle = (($PRData.title -split " ")[2] | where {$_ -match "\."}),
@@ -3353,8 +2359,13 @@ Function Get-PRManifest {
 		$CommitFile = (Get-CommitFile -PR $PR -MatchName ""),
 		$PackageIdentifier = ((Get-YamlValue -StringName "PackageIdentifier" $CommitFile) -replace '"',''-replace "'",''),
 		$PackageVersion = ((Get-YamlValue -StringName "PackageVersion" $CommitFile) -replace '"',''-replace "'",''),
-		$Submitter = ((Invoke-GitHubRequest "$GitHubApiBaseUrl/pulls/$pr" -JSON).user.login)
+		$Submitter = ((Invoke-GitHubRequest "$GitHubApiBaseUrl/pulls/$pr" -JSON).user.login),
+		[switch]$Patch
 	)
+	
+	if ($Patch) {
+		$CommitFile = (Get-CommitFile -PR $PR -MatchName "" -Patch)
+	}
 	
 	$out = "$PackageIdentifier version $PackageVersion #$PR`n"
 	$out += "$Submitter wants to merge`n"
@@ -3441,16 +2452,17 @@ Function Approve-PR {
 		$commit = (($prData.commit.url -split "/")[-1]),
 		$uri = "$GitHubApiBaseUrl/pulls/$pr/reviews"
 	)
+	if (($prData.commit.author.name -join " " -notmatch "Gilgamech") -AND  ($prData.commit.author.name -join " " -notmatch "Stephen Gillie")) {
+		$Response = @{}
+		$Response.body = $Body
+		$Response.commit = $commit
+		$Response.event = "APPROVE"
+		[string]$Body = $Response | ConvertTo-Json
 
-	$Response = @{}
-	$Response.body = $Body
-	$Response.commit = $commit
-	$Response.event = "APPROVE"
-	[string]$Body = $Response | ConvertTo-Json
-
-	$out = Invoke-GitHubRequest -Method Post -Uri $uri -Body $Body 
-	$out.StatusDescription
-	Get-AddPRLabel -PR $PR -LabelName $Labels.MA
+		$out = Invoke-GitHubRequest -Method Post -Uri $uri -Body $Body 
+		$out.StatusDescription
+		Get-AddPRLabel -PR $PR -LabelName $Labels.MA
+	}
 }
 
 Function Get-ApproveBySearch {
@@ -3830,46 +2842,88 @@ Function Get-AddToAutowaiver {
 		$PR,
 		$RemoveLabel,
 		$AutowaiverData = (Get-Content $AutowaiverFile | ConvertFrom-Csv),
-		$PRData = (Get-CommitFile -PR $PR),
+		$PRData = (Get-CommitFile -PR $PR -MatchName ""),
 		$PackageIdentifier = (Get-YamlValue -StringName PackageIdentifier -clip $PRData)
 	)
-	$NewLine = "" | select "PackageIdentifier","ManifestValue","ManifestKey","RemoveLabel"
-	$NewLine.PackageIdentifier = $PackageIdentifier
-	$NewLine.RemoveLabel = $RemoveLabel
-	if (($RemoveLabel -eq $Labels.VD) -or ($RemoveLabel -eq $Labels.VUU)) {
-		$NewLine.ManifestValue = ((Get-YamlValue -StringName InstallerUrl -clip $PRData) -split "/")[2]
-		$NewLine.ManifestKey = "InstallerUrl"
-	} else {
-		$NewLine.ManifestValue = $PackageIdentifier
-		$NewLine.ManifestKey = "PackageIdentifier"
-	}
+	if ($PackageIdentifier.length -gt 1) {
+		Write-Host "PR: $PR - Adding $PackageIdentifier to $AutowaiverFile"
+		$NewLine = "" | select "PackageIdentifier","ManifestValue","ManifestKey","RemoveLabel"
+		$NewLine.PackageIdentifier = $PackageIdentifier
+		$NewLine.RemoveLabel = $RemoveLabel
+		if (($RemoveLabel -eq $Labels.VD) -or ($RemoveLabel -eq $Labels.VUU)) {
+			$NewLine.ManifestValue = ((Get-YamlValue -StringName InstallerUrl -clip $PRData) -split "/")[2]
+			$NewLine.ManifestKey = "InstallerUrl"
+		} else {
+			$NewLine.ManifestValue = $PackageIdentifier
+			$NewLine.ManifestKey = "PackageIdentifier"
+		}
 
-	$AutowaiverData += $NewLine
-	($AutowaiverData | sort PackageIdentifier | ConvertTo-Csv) | Out-File $AutowaiverFile
+		$AutowaiverData += $NewLine
+		($AutowaiverData | sort PackageIdentifier | ConvertTo-Csv) | Out-File $AutowaiverFile
+	}
 }
+
+<#
+Function Get-ExistingManifestAutowaiver {
+	param(
+		$PR
+	)
+	$CommitFile = Get-CommitFile -PR $PR
+	$PackageIdentifier = Get-YamlValue -StringName "PackageIdentifier" -clip $CommitFile
+	Write-Output "PackageIdentifier: $PackageIdentifier"
+	$FileFromGitHub = Get-FileFromGitHub -PackageIdentifier $PackageIdentifier -Version (Get-ManifestListing $PackageIdentifier -ListVersions)[-1]
+	$FileDomain = Get-YamlValue -StringName InstallerUrl -clip $FileFromGitHub
+	$FileDomain = ($FileDomain -split "/")[2]
+	Write-Output "Existing domain: $FileDomain"
+	$CommitDomain = Get-YamlValue -StringName InstallerUrl -clip $CommitFile
+	$CommitDomain = ($CommitDomain -split "/")[2]
+	Write-Output "PR domain: $CommitDomain"
+	if ($filedomain -eq $commitdomain) {
+		Write-Output "PR domain matches Manifest domain."
+		Get-AddToAutowaiver -PR $PR -RemoveLabel Validation-Domain;
+		Reply-ToPR -PR $PR -body "@wingetbot waivers Add Validation-Domain"
+	} else {
+		Write-Output "PR domain does not match Manifest domain."
+	}
+}
+#>
 
 Function Get-Autowaiver {
 	param(
 		[int]$PR = (Get-PRNumber (Get-Clipboard) -Hash),
 		$AutowaiverData = (Get-Content $AutowaiverFile | ConvertFrom-Csv),
-		$PRData = (Get-CommitFile -PR $PR),
+		$PRData = (Get-CommitFile -PR $PR -MatchName ""),
 		$PackageIdentifier = (Get-YamlValue -StringName PackageIdentifier -clip $PRData),
-		$WaiverData = ($AutowaiverData | ?{$_.PackageIdentifier -eq $PackageIdentifier})
+		$WaiverData = ($AutowaiverData | ?{$_.PackageIdentifier -eq $PackageIdentifier}),
+		[switch]$WhatIf
 	)
 	if ($WaiverData) {
 		Add-PRToRecord -PR $PR -Action $Actions.Waiver
 		foreach ($Waiver in $WaiverData) {
 			if ($Waiver.RemoveLabel -eq $Labels.PD) {
-				Get-RemovePRLabel -PR $PR -LabelName $Waiver.RemoveLabel
-				Get-RemovePRLabel -PR $pr -LabelName "Needs-Author-Feedback"
-				Get-RemovePRLabel -PR $pr -LabelName "Needs-Attention"
-				Get-AddPRLabel -PR $PR -LabelName Validation-Completed
+				Write-Host "PR: $PR - Completing PR for $PackageIdentifier"
+				if ($WhatIf) {
+					"Get-RemovePRLabel -PR $PR -LabelName $Waiver.RemoveLabel"
+					"Get-RemovePRLabel -PR $pr -LabelName 'Needs-Author-Feedback'"
+					"Get-RemovePRLabel -PR $pr -LabelName 'Needs-Attention'"
+					"Get-AddPRLabel -PR $PR -LabelName Validation-Completed"
+				} else {
+					Get-RemovePRLabel -PR $PR -LabelName $Waiver.RemoveLabel
+					Get-RemovePRLabel -PR $pr -LabelName "Needs-Author-Feedback"
+					Get-RemovePRLabel -PR $pr -LabelName "Needs-Attention"
+					Get-AddPRLabel -PR $PR -LabelName Validation-Completed
+				}
 			} else {
+				Write-Host "PR: $PR - Adding $($Waiver.RemoveLabel) waiver for $PackageIdentifier"
 				try {
 					$PackageValue = (Get-YamlValue -StringName $Waiver.ManifestKey -clip $PRData)
 				} catch {}
 				if ($PackageValue -match $Waiver.ManifestValue) {
-					Reply-ToPR -PR $PR -body "@wingetbot waivers Add $($Waiver.RemoveLabel)"
+					if ($WhatIf) {
+						"Reply-ToPR -PR $PR -body '@wingetbot waivers Add $($Waiver.RemoveLabel)'"
+					} else {
+						Reply-ToPR -PR $PR -body "@wingetbot waivers Add $($Waiver.RemoveLabel)"
+					}
 				}
 			}
 		}
@@ -3983,7 +3037,7 @@ Function Get-TrackerVMValidate {
 	param(
 		$clipInput = ((Get-Clipboard) -split "`n"),
 		$clip = ($clipInput[0..(($clipInput | Select-String "Do not share my personal information").LineNumber -1)]),
-		[ValidateSet("Win10","Win11")][string]$OS = (Get-OSFromVersion -clip $clip),
+		[ValidateSet("Win11")][string]$OS = (Get-OSFromVersion -clip $clip),
 		[int]$vm = ((Get-NextFreeVM -OS $OS) -replace"vm",""),
 		[switch]$NoFiles,
 		[ValidateSet("Configure","DevHomeConfig","Pin","Scan")][string]$Operation = "Scan",
@@ -4207,6 +3261,7 @@ Function Get-TrackerVMValidate {
 	`$TimeStart = Get-Date;
 	`$explorerPid = (Get-Process Explorer).id;
 	`$ManValLogFolder = `"$SharedFolder/logs/$(Get-Date -UFormat %B)/`$(Get-Date -Format dd)`"
+	`$WinGetLogFolder = 'C:\Users\User\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir'
 	Function Out-Log ([string]`$logData,[string]`$logColor='cyan') {
 		`$TimeStamp = (Get-Date -Format T) + ': ';
 		`$logEntry = `$TimeStamp + `$logData
@@ -4238,7 +3293,6 @@ Function Get-TrackerVMValidate {
 	Out-Log 'Clearing Application Log.'
 	Clear-EventLog -LogName Application -ErrorAction Ignore
 	Out-Log 'Clearing WinGet Log folder.'
-	`$WinGetLogFolder = 'C:\Users\User\AppData\Local\Packages\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\LocalState\DiagOutputDir'
 	rm `$WinGetLogFolder\*
 	Out-Log 'Updating Defender signature.'
 	Update-MpSignature
@@ -4250,7 +3304,7 @@ Function Get-TrackerVMValidate {
 	$ManualDependency
 	Out-Log `"Main Package Install with args: $wingetArgs`"
 	`$mainpackage = (Start-Process 'winget' '$wingetArgs' -wait -PassThru);
-	Out-Log `"`$(`$mainpackage.processname) finished with exit code: `$(`$mainpackage.ExitCode)`";
+	Out-Log `"Install finished with exit code: `$(`$mainpackage.ExitCode)`";
 	`$SleepSeconds = 15 #Sleep a few seconds for processes to complete.
 	if ((`$InstallStart).AddSeconds(`$SleepSeconds) -gt (Get-Date)) {
 		sleep ((`$InstallStart).AddSeconds(`$SleepSeconds)-(Get-Date)).totalseconds
@@ -4261,34 +3315,37 @@ Function Get-TrackerVMValidate {
 		Out-Log 'Install Failed.';
 		explorer.exe `$WinGetLogFolder;
 
-	`$WinGetLogs = ((Get-ChildItem `$WinGetLogFolder).fullname | ForEach-Object {
-		Get-Content `$_ | Where-Object {
-			`$_ -match '[[]FAIL[]]' -OR 
-			`$_ -match 'failed' -OR 
-			`$_ -match 'error' -OR 
-			`$_ -match 'does not match'
+		`$WinGetLogs = ((Get-ChildItem `$WinGetLogFolder).fullname | ForEach-Object {
+			Get-Content `$_ | Where-Object {
+				`$_ -match '[[]FAIL[]]' -OR 
+				`$_ -match 'failed' -OR 
+				`$_ -match 'error' -OR 
+				`$_ -match 'does not match'
+			}
+		})
+		`$DefenderThreat = (Get-MPThreat).ThreatName
+
+		Out-ErrorData `$WinGetLogs 'WinGet'
+		Out-ErrorData '$MDLog' 'Manual' 'Dependency'
+		Out-ErrorData `$Error 'PowerShell'
+		Out-ErrorData (Get-EventLog Application -EntryType Error -after `$TimeStart -ErrorAction Ignore).Message 'Application Log'
+		Out-ErrorData `$DefenderThreat `"Defender (with signature version `$((Get-MpComputerStatus).QuickScanSignatureVersion))`"
+
+		Out-Log `" = = = = Failing Manual Validation pipeline build $build on VM $VM for $PackageIdentifier $logLine in `$(((Get-Date) -`$TimeStart).TotalSeconds) seconds. = = = = `"
+
+		if ((`$WinGetLogs -match '\[FAIL\] Installer failed security check.') -OR 
+		(`$WinGetLogs -match '80190194 Not found') -OR 
+		(`$WinGetLogs -match 'Package hash verification failed') -OR 
+		(`$WinGetLogs -match 'Operation did not complete successfully because the file contains a virus or potentially unwanted software')){
+			Send-SharedError -clip `$WinGetLogs
+		} elseif (`$DefenderThreat) {
+			Send-SharedError -clip `$DefenderThreat
+		} elseif (`$WinGetLogs -match 'The multi file manifest has inconsistent field values') {
+			Out-Log $WinGetLogs
+			Get-TrackerVMSetStatus 'Complete'
+		} else {
+			Get-TrackerVMSetStatus 'ValidationCompleted'
 		}
-	})
-	`$DefenderThreat = (Get-MPThreat).ThreatName
-
-	Out-ErrorData `$WinGetLogs 'WinGet'
-	Out-ErrorData '$MDLog' 'Manual' 'Dependency'
-	Out-ErrorData `$Error 'PowerShell'
-	Out-ErrorData (Get-EventLog Application -EntryType Error -after `$TimeStart -ErrorAction Ignore).Message 'Application Log'
-	Out-ErrorData `$DefenderThreat `"Defender (with signature version `$((Get-MpComputerStatus).QuickScanSignatureVersion))`"
-
-	Out-Log `" = = = = Failing Manual Validation pipeline build $build on VM $VM for $PackageIdentifier $logLine in `$(((Get-Date) -`$TimeStart).TotalSeconds) seconds. = = = = `"
-
-	if ((`$WinGetLogs -match '\[FAIL\] Installer failed security check.') -OR 
-	(`$WinGetLogs -match '80190194 Not found') -OR 
-	(`$WinGetLogs -match 'Package hash verification failed') -OR 
-	(`$WinGetLogs -match 'Operation did not complete successfully because the file contains a virus or potentially unwanted software')){
-		Send-SharedError -clip `$WinGetLogs
-	} elseif (`$DefenderThreat) {
-		Send-SharedError -clip `$DefenderThreat
-	} else {
-		Get-TrackerVMSetStatus 'ValidationCompleted'
-	}
 
 		Break;
 	}
@@ -4386,6 +3443,9 @@ Function Get-TrackerVMValidate {
 		Send-SharedError -clip `$WinGetLogs
 		Out-Log `" = = = = Failing Manual Validation pipeline build $build on VM $VM for $PackageIdentifier $logLine in `$(((Get-Date) -`$TimeStart).TotalSeconds) seconds. = = = = `"
 		Get-TrackerVMSetStatus 'SendStatus'
+	} elseif (`$WinGetLogs -match 'The multi file manifest has inconsistent field values') {
+		Out-Log `" = = = = Failing Manual Validation pipeline build $build on VM $VM for $PackageIdentifier $logLine in `$(((Get-Date) -`$TimeStart).TotalSeconds) seconds. = = = = `"
+		Get-TrackerVMSetStatus 'Complete'
 	} elseif (`$DefenderThreat) {
 		Send-SharedError -clip `$DefenderThreat
 		Out-Log `" = = = = Failing Manual Validation pipeline build $build on VM $VM for $PackageIdentifier $logLine in `$(((Get-Date) -`$TimeStart).TotalSeconds) seconds. = = = = `"
@@ -4401,6 +3461,7 @@ Function Get-TrackerVMValidate {
 		Out-Log `" = = = = Completing Manual Validation pipeline build $build on VM $VM for $PackageIdentifier $logLine in `$(((Get-Date) -`$TimeStart).TotalSeconds) seconds. = = = = `"
 		Get-TrackerVMSetStatus 'ValidationCompleted'
 	}
+
 
 	"
 		}#end Scan
@@ -4455,7 +3516,7 @@ Function Get-TrackerVMValidate {
 				if (!($Silent)) {
 					Write-Host -f $filecolor "File count $filecount is $filedir"
 				}
-				if ($filecount -lt 3) { break}
+				# if ($filecount -lt 3) { break}
 				$fileContents = Get-Content "$runPath\$vm\manifest\Package.yaml"
 				if ($fileContents[-1] -ne "0") {
 					$fileContents[-1] = ($fileContents[-1] -split ".0")[0]+".0"
@@ -4494,7 +3555,6 @@ Function Get-TrackerVMValidate {
 		if (!($Silent)) {
 			Write-Host "File operations complete, starting VM operations."
 		}
-		Get-TrackerVMRevert $VM -Silent
 		Get-TrackerVMLaunchWindow $VM
 	}
 }
@@ -4681,13 +3741,13 @@ Function Get-ManifestFile {
 Function Get-ManifestListing {
 	param(
 		$PackageIdentifier,
-		$Version = (Find-WinGetPackage $PackageIdentifier -MatchOption Equals).version,
+		$VersionNumber = (Find-WinGetPackage $PackageIdentifier -MatchOption Equals).version,
 		$Path = ($PackageIdentifier -replace "[.]","/"),
 		$FirstLetter = ($PackageIdentifier[0].tostring().tolower()),
-		$Uri = "$GitHubApiBaseUrl/contents/manifests/$FirstLetter/$Path/$Version/",
-		[Switch]$Versions
+		$Uri = "$GitHubApiBaseUrl/contents/manifests/$FirstLetter/$Path/$VersionNumber/",
+		[Switch]$ListVersions
 	)
-	If ($Versions) {
+	If ($ListVersions) {
 		$Uri = "$GitHubApiBaseUrl/contents/manifests/$FirstLetter/$Path/"
 	}
 	try{
@@ -4717,18 +3777,18 @@ Function Get-ListingDiff {
 }
 
 Function Get-OSFromVersion ($clip) {
-	try{
-		if ([system.version](Get-YamlValue -StringName MinimumOSVersion -clip $clip) -ge [system.version]"10.0.22000.0"){"Win11"} else{"Win10"}
-	} catch {
-		"Win10"
-	}
+	# try{
+		# if ([system.version](Get-YamlValue -StringName MinimumOSVersion -clip $clip) -ge [system.version]"10.0.22000.0"){"Win11"} else{"Win10"}
+	# } catch {
+		"Win11"
+	# }
 }
 
 #VM Image Management
 Function Get-PipelineVmGenerate {
 	param(
 		[int]$vm = (Get-Content $vmCounter),
-		[ValidateSet("Win10","Win11")][string]$OS = "Win10",
+		[ValidateSet("Win11")][string]$OS = "Win11",
 		[int]$version = (Get-TrackerVMVersion -OS $OS),
 		$destinationPath = "$imagesFolder\$vm\",
 		$VMFolder = "$MainFolder\vm\$vm",
@@ -4743,12 +3803,17 @@ Function Get-PipelineVmGenerate {
 	Get-RemoveFileIfExist $VMFolder -remake
 	$vmImageFolder = (ls "$imagesFolder\$OS-image\Virtual Machines\" *.vmcx).fullname
 
-	Write-Host "Takes about 120 seconds..."
+	Write-Host "Takes about 400 seconds. (Until $((get-date).AddSeconds(400).ToString('T')).) Beginning import..."
 	Import-VM -Path $vmImageFolder -Copy -GenerateNewId -VhdDestinationPath $destinationPath -VirtualMachinePath $destinationPath;
+	Write-Host "Import complete, renaming..."
 	Rename-VM (Get-VM | Where-Object {($_.CheckpointFileLocation)+"\" -eq $destinationPath}) -NewName $newVmName
+	Write-Host "Rename complete, starting..."
 	Start-VM $newVmName
+	Write-Host "Starting VM and cleaning up checkpoints..."
 	Remove-VMCheckpoint -VMName $newVmName -Name "Backup"
+	Write-Host "Reverting VM..."
 	Get-TrackerVMRevert $VM
+	Write-Host "Launching VM window, handing off to Orchestration."
 	Get-TrackerVMLaunchWindow $VM
 	Write-Host "Took $(((Get-Date)-$startTime).TotalSeconds) seconds..."
 }
@@ -4783,7 +3848,7 @@ Function Get-PipelineVmDisgenerate {
 
 Function Get-ImageVMStart {
 	param(
-		[ValidateSet("Win10","Win11")][string]$OS = "Win10"
+		[ValidateSet("Win11")][string]$OS = "Win11"
 	)
 	Test-Admin
 	$VM = 0
@@ -4794,19 +3859,19 @@ Function Get-ImageVMStart {
 
 Function Get-ImageVMStop {
 	param(
-		[ValidateSet("Win10","Win11")][string]$OS = "Win10"
+		[ValidateSet("Win11")][string]$OS = "Win11"
 	)
 	Test-Admin
 	$VM = 0
 	$OriginalLoc = ""
-	switch ($OS) {
-		"Win10" {
-			$OriginalLoc = $Win10Folder
-		}
-		"Win11" {
-			$OriginalLoc = $Win11Folder
-		}
-	}
+	# switch ($OS) {
+		# "Win10" {
+			# $OriginalLoc = $Win10Folder
+		# }
+		# "Win11" {
+		# }
+	# }
+	$OriginalLoc = $Win11Folder
 	$ImageLoc = "$imagesFolder\$OS-image\"
 	[int]$version = [int](Get-TrackerVMVersion -OS $OS) + 1
 	Write-Host "Writing $OS version $version"
@@ -4821,19 +3886,19 @@ Function Get-ImageVMStop {
 
 Function Get-ImageVMMove {
 	param(
-		[ValidateSet("Win10","Win11")][string]$OS = "Win10",
+		[ValidateSet("Win11")][string]$OS = "Win11",
 		$CurrentVMName = "",
 		$newLoc = "$imagesFolder\$OS-Created$(get-date -f MMddyy)-Original"
 	)
 	Test-Admin
-	switch ($OS) {
-		"Win10" {
-			$CurrentVMName = "Windows 10 MSIX packaging environment"
-		}
-		"Win11" {
-			$CurrentVMName = "Windows 11 dev environment"
-		}
-	}
+	# switch ($OS) {
+		# "Win10" {
+			# $CurrentVMName = "Windows 10 MSIX packaging environment"
+		# }
+		# "Win11" {
+		# }
+	# }
+	$CurrentVMName = "Windows 11 dev environment"
 	$VM = Get-VM | where {$_.Name -match $CurrentVMName}
 	Move-VMStorage -VM $VM -DestinationStoragePath $newLoc
 	Rename-VM -VM $VM -NewName $OS
@@ -4876,6 +3941,7 @@ Function Complete-TrackerVM {
 	Stop-Process -id ((Get-ConnectedVM)|Where-Object {$_.VM -match "vm$VM"}).id -ErrorAction Ignore
 	Stop-TrackerVM $VM
 	Get-RemoveFileIfExist $filesFileName
+	Get-TrackerVMRevert $VM -Silent
 	Get-TrackerVMSetStatus "Ready" $VM " " 1 "Ready"
 }
 
@@ -4891,7 +3957,7 @@ Function Stop-TrackerVM {
 #VM Status
 Function Get-TrackerVMSetStatus {
 	param(
-		[ValidateSet("AddVCRedist","Approved","CheckpointComplete","Checkpointing","CheckpointReady","Completing","Complete","Disgenerate","Generating","Installing","Prescan","Prevalidation","Ready","Rebooting","Regenerate","Restoring","Revert","Scanning","SendStatus","SendStatus-Approved","SendStatus-Complete","Setup","SetupComplete","Starting","Updating","ValidationCompleted")]
+		[ValidateSet("AddVCRedist","Approved","CheckpointComplete","Checkpointing","CheckpointReady","Completing","Complete","Disgenerate","Generating","Installing","Prescan","Prevalidation","Ready","Rebooting","Regenerate","Restoring","Revert","Scanning","SendStatus","SendStatus-Approved","SendStatus-Complete","Setup","SetupComplete","Starting","Unhealthy","Updating","ValidationCompleted")]
 		$Status = "Complete",
 		[Parameter(mandatory=$True)]$VM,
 		[string]$Package,
@@ -4901,24 +3967,26 @@ Function Get-TrackerVMSetStatus {
 		[Switch]$Silent
 	)
 	$out = Get-Status
-	if ($Status) {
-		($out | Where-Object {$_.vm -match $VM}).Status = $Status
-	}
-	if ($Package) {
-		($out | Where-Object {$_.vm -match $VM}).Package = $Package
-	}
-	if ($PR) {
-		($out | Where-Object {$_.vm -match $VM}).PR = $PR
-	}
-	if ($Mode) {
-		($out | Where-Object {$_.vm -match $VM}).Mode = $Mode
-	}
-	if ($Silent) {
-		Write-Status $out -Silent
-	} else {
-		Write-Status $out
-		Write-Host "Setting $VM $Package $PR state $Status"
-	}
+	if ($VM -notmatch "Win") {
+		if ($Status) {
+			($out | Where-Object {$_.vm -match $VM}).Status = $Status
+		}
+		if ($Package) {
+			($out | Where-Object {$_.vm -match $VM}).Package = $Package
+		}
+		if ($PR) {
+			($out | Where-Object {$_.vm -match $VM}).PR = $PR
+		}
+		if ($Mode) {
+			($out | Where-Object {$_.vm -match $VM}).Mode = $Mode
+		}
+		if ($Silent) {
+			Write-Status $out -Silent
+		} else {
+			Write-Status $out
+			Write-Host "Setting $VM $Package $PR state $Status"
+		}; #end if Status
+	}; #end if VM
 }
 
 Function Write-Status {
@@ -4935,9 +4003,9 @@ Function Write-Status {
 Function Get-Status {
 	param(
 		[int]$vm,
-		[ValidateSet("AddVCRedist","Approved","CheckpointComplete","Checkpointing","CheckpointReady","Completing","Complete","Disgenerate","Generating","Installing","Prescan","Prevalidation","Ready","Rebooting","Regenerate","Restoring","Revert","Scanning","SendStatus","SendStatus-Approved","SendStatus-Complete","Setup","SetupComplete","Starting","Updating","ValidationCompleted")]
+		[ValidateSet("AddVCRedist","Approved","CheckpointComplete","Checkpointing","CheckpointReady","Completing","Complete","Disgenerate","Generating","Installing","Prescan","Prevalidation","Ready","Rebooting","Regenerate","Restoring","Revert","Scanning","SendStatus","SendStatus-Approved","SendStatus-Complete","Setup","SetupComplete","Starting","Unhealthy","Updating","ValidationCompleted")]
 		$Status,
-		[ValidateSet("Win10","Win11")][string]$OS,
+		[ValidateSet("Win11")][string]$OS,
 		$out = (Get-Content $StatusFile | ConvertFrom-Csv)
 	)
 	$out
@@ -4961,8 +4029,8 @@ Function Get-TrackerVMRebuildStatus {
 	Where-Object {$_.name -notmatch "Win11"} |
 	Select-Object @{n="vm";e={$_.name -replace "vm",$null}},
 	@{n="status";e={"Ready"}},
-	@{n="version";e={(Get-TrackerVMVersion -OS "Win10")}},
-	@{n="OS";e={"Win10"}},
+	@{n="version";e={(Get-TrackerVMVersion -OS "Win11")}},
+	@{n="OS";e={"Win11"}},
 	@{n="Package";e={""}},
 	@{n="PR";e={"1"}},
 	@{n="Mode";e={"Unknown"}},
@@ -4973,7 +4041,7 @@ Function Get-TrackerVMRebuildStatus {
 #VM Versioning
 Function Get-TrackerVMVersion {
 	param(
-		[ValidateSet("Win10","Win11")][string]$OS = "Win10",
+		[ValidateSet("Win11")][string]$OS = "Win11",
 		[int]$VM = ((Get-Content $VMversion | ConvertFrom-Csv | Where-Object {$_.OS -eq $OS}).version)
 	)
 	Return $VM
@@ -4982,7 +4050,7 @@ Function Get-TrackerVMVersion {
 Function Get-TrackerVMSetVersion {
 	param(
 		[int]$Version,
-		[ValidateSet("Win10","Win11")][string]$OS = "Win10",
+		[ValidateSet("Win11")][string]$OS = "Win11",
 		$Versions = (Get-Content $VMversion | ConvertFrom-Csv)
 	)
 	($Versions | Where-Object {$_.OS -eq $OS}).Version = $Version
@@ -4992,7 +4060,7 @@ Function Get-TrackerVMSetVersion {
 Function Get-TrackerVMRotate {
 	param(
 		$status = (Get-Status),
-		$OS = "Win10",
+		$OS = "Win11",
 		$VMs = ($status | Where-Object {$_.version -lt (Get-TrackerVMVersion -OS $OS)} | Where-Object {$_.OS -eq $OS})
 	)
 	if ($VMs){
@@ -5014,6 +4082,7 @@ Function Get-TrackerVMCycle {
 			}
 			"Approved" {
 				#Add-Waiver $VM.PR
+				#Add-PRToRecord -PR $PR -Action $Actions.Manual -Title $PRtitle
 				$PRLabels = ((Invoke-GitHubPRRequest -PR $VM.PR -Type "labels" -Output content -JSON).name) -join " "
 				if ($PRLabels -match $Labels.VC) {
 					Approve-PR -PR $VM.PR
@@ -5086,7 +4155,7 @@ Function Get-ConnectedVM {
 
 Function Get-NextFreeVM {
 	param(
-		[ValidateSet("Win10","Win11")][string]	$OS = "Win10",
+		[ValidateSet("Win11")][string]	$OS = "Win11",
 		$Status = "Ready"
 	)
 	Test-Admin
@@ -5138,7 +4207,7 @@ Function Get-SecondMatch {
 Function Get-SendStatus {
 	Param(
 		$PR,
-		[ValidateSet("AddVCRedist","Approved","CheckpointComplete","Checkpointing","CheckpointReady","Completing","Complete","Disgenerate","Generating","Installing","Prescan","Prevalidation","Ready","Rebooting","Regenerate","Restoring","Revert","Scanning","SendStatus","SendStatus-Approved","SendStatus-Complete","Setup","SetupComplete","Starting","Updating","ValidationCompleted")]
+		[ValidateSet("AddVCRedist","Approved","CheckpointComplete","Checkpointing","CheckpointReady","Completing","Complete","Disgenerate","Generating","Installing","Prescan","Prevalidation","Ready","Rebooting","Regenerate","Restoring","Revert","Scanning","SendStatus","SendStatus-Approved","SendStatus-Complete","Setup","SetupComplete","Starting","Unhealthy","Updating","ValidationCompleted")]
 		$Status = "Complete",
 		$SharedError = ((Get-Content $SharedErrorFile) -split "`n")
 	)
@@ -5240,25 +4309,32 @@ Function Get-CommitFile {
 		$Commit = (Invoke-GitHubPRRequest -PR $PR -Type commits -Output content -JSON),
 		$MatchName = "installer",
 		$PRData = (Invoke-GitHubRequest "$GitHubApiBaseUrl/pulls/$pr" -JSON),
-		$PRTitle = (($PRData.title -split " ") | where {$_ -match "[A-Za-z0-9]\.[A-Za-z0-9]"} | where {$_ -notmatch "[0-9].[0-9]"}),
+		#$PRTitle = (($PRData.title -split "[^a-zA-Z0-9.]") | where {$_ -match "[A-Za-z0-9]\.[A-Za-z0-9]"} | where {$_ -notmatch "[0-9].[0-9]"}),
+		$PackageIdentifier = (($Commit.files.filename -split "/")[-1] -replace ".installer","," -replace ".locale","," -replace ".yaml","," -split ",")[0],
 		#$PRTitle = (($PRData.title -split " ")[2] | where {$_ -match "\."}),
-		$FileList = ($Commit.files.contents_url | where {$_ -match $MatchName}  | where {$_ -match $PRTitle}),
-		[int]$VM = 0
+		# $FileList = ($Commit.files.contents_url | where {$_ -match $MatchName}  | where {$_ -match $PRTitle}),
+		$FileList = ($Commit.files.contents_url | where {$_ -match $MatchName}  | where {$_ -match $PackageIdentifier}),
+		[int]$VM = 0,
+		[switch]$Patch
 	)
-	$FileList | %{
-		"File: $_"
-		try {
-			$EncodedFile = (invoke-GithubRequest -Uri $_ -JSON)
-		} catch {
-			write-host $error[0].Message
-		}
-		$DecodedFile = Get-DecodeGitHubFile $EncodedFile.content
-		if ($VM -gt 0) {
-			Get-ManifestFile -vm $VM  -PR $PR -clip $DecodedFile
-		} else {
-			$DecodedFile -join "`n"
-		}
-	}
+	if ($Patch) {
+		$commit.files.patch
+	} else {
+		$FileList | %{
+			"File: $_"
+			try {
+				$EncodedFile = (invoke-GithubRequest -Uri $_ -JSON)
+			} catch {
+				write-host $error[0].Message
+			}
+			$DecodedFile = Get-DecodeGitHubFile $EncodedFile.content
+			if ($VM -gt 0) {
+				Get-ManifestFile -vm $VM  -PR $PR -clip $DecodedFile
+			} else {
+				$DecodedFile -join "`n"
+			}; #end if VM
+		}; #end foreach Filelist
+	}; #end if Patch
 }
 
 #Inject dependencies
@@ -5376,7 +4452,7 @@ Function Add-PRToQueue {
 		$PR,
 		$PRExclude = ((gc $PRExcludeFile) -split "`n")
 	)
-	if ($PRExclude -notcontains $Pr) {
+	if ($PRExclude -notcontains $PR) {
 		$PR | Out-File $PRQueueFile -Append
 		
 	}
@@ -5395,6 +4471,24 @@ Function Get-PopPRQueue {
 Function Get-PRQueueCount {
 	$count = ((Get-Content $PRQueueFile) -split "`n").count
 	return $count
+}
+
+Function Get-CleanPRExcludeFile {
+	[array]$out = $null
+	Get-Content $PRExcludeFile | %{
+			$PRData = (Invoke-GitHubRequest "$GitHubApiBaseUrl/pulls/$_" -JSON); if ($PRData.state -eq "Open"){
+				$out += $_
+			}
+		}
+	Out-File -InputObject $out -FilePath $PRExcludeFile
+}
+
+Function Get-CleanPRFolder {
+	[array]$Images = ((ls $imagesFolder -Directory).name | where {$_ -notmatch "win"})
+	$Images += 0
+	$VMs = (Get-Status).vm
+	$VMsToRemove = ((diff $Images $VMs | where {$_.sideindicator -eq "<="}).inputobject) 
+	$VMsToRemove | %{Get-PipelineVmDisgenerate $_}
 }
 
 #Reporting
@@ -5745,7 +4839,7 @@ Function Get-TrackerVMWindowSet {
 
 Function Get-TrackerVMWindowArrange {
 	param(
-		$VMs = (Get-Status |where {$_.status -ne "Ready"}|where {$_.status -ne "ImagePark"}).vm 
+		$VMs = (Get-Status |where {$_.status -ne "Ready"}|where {$_.status -ne "Unhealthy"}).vm 
 	)
 	If ($VMs) {
 		Get-TrackerVMWindowSet $VMs[0] 900 0 1029 860
