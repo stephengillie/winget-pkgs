@@ -91,7 +91,7 @@
 "IDRIX.VeraCrypt","","","","","","0","","0","147744","https://veracrypt.fr/en/VeraCrypt%20License.html",""
 "igoogolx.lux","igoogolx","should","auto","","","","","","","",
 "Insomnia.Inso","","","","Validation-Executable-Error","","","","","","",
-"Intel.FortranCompiler","lars-nvhgroup","should","manual","","","0","","0","140928","https://cdrdv2-public.intel.com/777700/intel-end-user-license-agreement-for-developer-tools-version-april-2023.pdf",""
+"Intel.FortranCompiler","lars-nvhgroup","should","manual","","","0","","0","140928","https://www.intel.com/content/www/us/en/content-details/777700/",""
 "Intel.oneMKL","","","","","","0","","0","140741","",
 "IPEP.Scantailor-Experimental","plzombie","should","auto","","","","","","","",
 "iQIYI.iQIYI","kingcean","should","auto","","","","","","","",
@@ -126,6 +126,7 @@
 "Japplis.WebsiteOptimizer","japplis","should","manual","","","","","","","",
 "JesseDuffield.Lazydocker","","","","Validation-Executable-Error","","","","","","",
 "JetBrains.*","","","","","SpecterShell","","","","","",
+"JRSoftware.InnoSetup","martijnlaan","must","manual","","","","","","","",
 "junegunn.fzf","junegunn","should","auto","","","","","","","",
 "kairoaraujo.tufie","kairoaraujo","should","auto","","","","","","","",
 "Keboola.KeboolaCLI","KeboolaAsCodeBot","should","auto","","","","","","","",
