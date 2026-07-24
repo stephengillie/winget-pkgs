@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver EAZYPETITIONLLC.eazyPetition ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "EAZYPETITIONLLC.eazyPetition"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "pub-7e43a56b93cd4288b6ac1300fa1cc5b0.r2.dev"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Domain"
+    }
+  ]
+}

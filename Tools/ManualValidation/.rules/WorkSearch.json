@@ -1,0 +1,21 @@
+  {
+  "RuleName": "CheckInstaller Remove",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Highest-Version-Remaining"
+      },
+      {
+        "Key": "Title",
+        "Comparison": "Match",
+        "Value": "Remove"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "CheckInstaller"
+      }
+    ]
+  }

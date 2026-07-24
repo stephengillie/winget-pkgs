@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-404-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-404-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-404-Error"
+    }
+  ]
+}

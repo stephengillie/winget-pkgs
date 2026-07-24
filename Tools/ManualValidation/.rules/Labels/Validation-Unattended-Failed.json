@@ -1,0 +1,19 @@
+{
+  "RuleName": "Label Validation-Unattended-Failed ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Unattended-Failed"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "AutoValLog"
+    },
+    {
+      "Action": "AddPRToQueue"
+    }
+  ]
+}

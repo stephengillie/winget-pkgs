@@ -1,0 +1,26 @@
+{
+  "RuleName": "Label New-Package ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "New-Package"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Completed"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Moderator-Approved"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "AddPRToQueue"
+    }
+  ]
+}

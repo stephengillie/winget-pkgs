@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver CoenFin.PDFinvoice2UBL ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "CoenFin.PDFinvoice2UBL"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.7"
+    }
+  ]
+}

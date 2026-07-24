@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Error-Installer-Availability ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Error-Installer-Availability"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Error-Installer-Availability"
+    }
+  ]
+}

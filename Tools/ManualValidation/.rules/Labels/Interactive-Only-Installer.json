@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Interactive-Only-Installer ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Interactive-Only-Installer"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Interactive-Only-Installer"
+    }
+  ]
+}

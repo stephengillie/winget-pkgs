@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Highest-Version-Remaining ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Highest-Version-Remaining"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Highest-Version-Remaining"
+    }
+  ]
+}

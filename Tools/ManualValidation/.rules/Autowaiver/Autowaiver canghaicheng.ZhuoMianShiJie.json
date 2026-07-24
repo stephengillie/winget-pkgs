@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver canghaicheng.ZhuoMianShiJie ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "canghaicheng.ZhuoMianShiJie"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Unapproved-URL"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "sourceforge.net"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Unapproved-URL"
+    }
+  ]
+}

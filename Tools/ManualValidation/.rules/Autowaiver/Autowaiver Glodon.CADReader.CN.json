@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver Glodon.CADReader.CN ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Glodon.CADReader.CN"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "URL-Validation-Error"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "yuntu-f.kuaicad.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add URL-Validation-Error"
+    }
+  ]
+}

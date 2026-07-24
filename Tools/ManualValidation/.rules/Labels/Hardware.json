@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Hardware ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Hardware"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Hardware"
+    }
+  ]
+}

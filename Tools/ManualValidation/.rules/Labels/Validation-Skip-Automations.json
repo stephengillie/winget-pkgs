@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Skip-Automations ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Skip-Automations"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Skip-Automations"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver HMCL.HMCL.Stable 2 ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "HMCL.HMCL.Stable"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Possible-Duplicate"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Possible-Duplicate"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver BtbN.FFmpeg.GPL.Shared ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "BtbN.FFmpeg.GPL.Shared"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-No-Executables"
+    }
+  ]
+}

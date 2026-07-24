@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label PullRequest-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "PullRequest-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "PullRequest-Error"
+    }
+  ]
+}

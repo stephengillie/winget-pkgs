@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Manual-Validation-Completed ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Manual-Validation-Completed"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "OpenPRInBrowser"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Interactive-Only-Download ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Interactive-Only-Download"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Interactive-Only-Download"
+    }
+  ]
+}

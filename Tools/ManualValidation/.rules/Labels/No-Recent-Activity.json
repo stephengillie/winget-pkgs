@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label No-Recent-Activity ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "No-Recent-Activity"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "No-Recent-Activity"
+    }
+  ]
+}

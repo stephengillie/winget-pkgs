@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Forbidden-URL-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Forbidden-URL-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "GetLogFromCommitFile"
+    }
+  ]
+}

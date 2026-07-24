@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver 2dust.v2rayN ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "2dust.v2rayN"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-No-Executables"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Highest-Version-Removal ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Highest-Version-Removal"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Highest-Version-Removal"
+    }
+  ]
+}

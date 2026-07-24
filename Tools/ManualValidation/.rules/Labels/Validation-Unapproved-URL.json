@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Unapproved-URL ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Unapproved-URL"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Unapproved-URL"
+    }
+  ]
+}

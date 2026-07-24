@@ -1,0 +1,34 @@
+{
+  "RuleName": "Autowaiver anycam-io.AnyCam ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "anycam-io.AnyCam"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Possible-Duplicate"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "RemoveLabel",
+      "Data": "Possible-Duplicate"
+    },
+    {
+      "Action": "RemoveLabel",
+      "Data": "Needs-Attention"
+    },
+    {
+      "Action": "RemoveLabel",
+      "Data": "Needs-Author-Feedback"
+    },
+    {
+      "Action": "AddLabel",
+      "Data": "Validation-Completed"
+    }
+  ]
+}

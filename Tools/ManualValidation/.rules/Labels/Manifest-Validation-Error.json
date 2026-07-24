@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Manifest-Validation-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Manifest-Validation-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Manifest-Validation-Error"
+    }
+  ]
+}

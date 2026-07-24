@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Bulk-Modify-Metadata ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Bulk-Modify-Metadata"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Bulk-Modify-Metadata"
+    }
+  ]
+}

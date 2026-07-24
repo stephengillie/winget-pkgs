@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver NewBreedSoftware.TuxPaint ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "NewBreedSoftware.TuxPaint"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-unapproved-URL"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "sourceforge.net"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-unapproved-URL"
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+  {
+  "RuleName": "Merge Approved",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Completed"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Moderator-Approved"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Blocking-Issue"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Highest-Version-Removal"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-Attention"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-Author-Feedback"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-Review"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "Approved"
+      },
+      {
+        "Action": "MergePR"
+      }
+    ]
+  }

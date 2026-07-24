@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label DriverInstall ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "DriverInstall"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "DriverInstall"
+    }
+  ]
+}

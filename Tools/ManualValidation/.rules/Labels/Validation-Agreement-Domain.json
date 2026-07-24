@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Agreement-Domain ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Agreement-Domain"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Agreement-Domain"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver CoenFin.AuditfileConverterAndAnalyser ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "CoenFin.AuditfileConverterAndAnalyser"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.7"
+    }
+  ]
+}

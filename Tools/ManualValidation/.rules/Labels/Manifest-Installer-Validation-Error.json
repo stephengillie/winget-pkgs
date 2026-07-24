@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Manifest-Installer-Validation-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Manifest-Installer-Validation-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "GetLogFromCommitFile"
+    }
+  ]
+}

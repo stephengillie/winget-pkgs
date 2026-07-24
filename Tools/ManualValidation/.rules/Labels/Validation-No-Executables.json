@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-No-Executables ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-No-Executables"
+    }
+  ]
+}

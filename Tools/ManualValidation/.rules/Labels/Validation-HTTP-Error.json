@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-HTTP-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-HTTP-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-HTTP-Error"
+    }
+  ]
+}

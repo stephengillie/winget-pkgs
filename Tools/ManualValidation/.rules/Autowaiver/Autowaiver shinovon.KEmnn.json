@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver shinovon.KEmnn ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "shinovon.KEmnn"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-No-Executables"
+    }
+  ]
+}

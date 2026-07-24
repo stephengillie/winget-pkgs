@@ -1,0 +1,19 @@
+{
+  "RuleName": "Label Validation-Shell-Execute ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Shell-Execute"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "AutoValLog"
+    },
+    {
+      "Action": "AddPRToQueue"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver FlightGear.FlightGear ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "FlightGear.FlightGear"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Possible-Duplicate"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Possible-Duplicate"
+    }
+  ]
+}

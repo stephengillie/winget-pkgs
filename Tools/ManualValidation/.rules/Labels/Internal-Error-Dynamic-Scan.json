@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Internal-Error-Dynamic-Scan ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Internal-Error-Dynamic-Scan"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "RerunCheck"
+    }
+  ]
+}

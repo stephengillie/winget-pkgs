@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver LeNgocKhoa.Laragon ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "LeNgocKhoa.Laragon"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "URL-Validation-Error"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "github.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add URL-Validation-Error"
+    }
+  ]
+}

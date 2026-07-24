@@ -1,0 +1,29 @@
+  {
+  "RuleName": "Remove other labels when VDE present",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Defender-Error"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "RemoveLabel",
+        "Data": "Internal-Error-Dynamic-Scan"
+      },
+      {
+        "Action": "RemoveLabel",
+        "Data": "Validation-Installation-Error"
+      },
+      {
+        "Action": "RemoveLabel",
+        "Data": "Validation-Execution-Error"
+      },
+      {
+        "Action": "RemoveLabel",
+        "Data": "Validation-Completed"
+      }
+    ]
+  }

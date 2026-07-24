@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Error-Analysis-Timeout ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Error-Analysis-Timeout"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Error-Analysis-Timeout"
+    }
+  ]
+}

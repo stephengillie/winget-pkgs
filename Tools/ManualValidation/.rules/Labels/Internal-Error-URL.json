@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Internal-Error-URL ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Internal-Error-URL"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Internal-Error-URL"
+    }
+  ]
+}

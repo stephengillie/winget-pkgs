@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver PixPin.PixPin ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "PixPin.PixPin"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Possible-Duplicate"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Possible-Duplicate"
+    }
+  ]
+}

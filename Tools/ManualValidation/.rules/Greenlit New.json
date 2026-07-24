@@ -1,0 +1,190 @@
+  {
+  "RuleName": "Greenlit New",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Hardware"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "No-Recent-Activity"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-Attention"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-Author-Feedback"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Agreements"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Blocking-Issue"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Binary-Validation-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-CLA"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-CLA"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Changes-Requested"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "DriverInstall"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Highest-Version-Removal"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Internal-Error-Manifest"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "License-Blocks-Install"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Last-Version-Removal"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Moderator-Approved"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Manifest-Installer-Validation-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Manifest-Metadata-Consistency"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Network-Blocker"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-Review"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Internal-Error-NoSupportedArchitectures"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Possible-Duplicate"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Project-File"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Reboot"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Scripted-Application"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Unexpected-File"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Unexpected-File"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-Certificate-Root"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Manifest-Version-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-Merge-Conflict"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-SmartScreen-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-Defender-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Completed"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "New-Package"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ClaCheck"
+      },
+      {
+        "Action": "CheckIfPackageIsNew"
+      },
+      {
+        "Action": "AddPRToQueue"
+      }
+    ]
+  }
+  
+
+

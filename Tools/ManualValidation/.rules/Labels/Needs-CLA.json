@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Needs-CLA ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Needs-CLA"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ClaCheck"
+    }
+  ]
+}

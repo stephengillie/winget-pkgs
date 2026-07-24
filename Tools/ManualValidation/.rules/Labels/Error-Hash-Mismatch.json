@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Error-Hash-Mismatch ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Error-Hash-Mismatch"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Error-Hash-Mismatch"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Manifest-Singleton-Deprecated ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Manifest-Singleton-Deprecated"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Manifest-Singleton-Deprecated"
+    }
+  ]
+}

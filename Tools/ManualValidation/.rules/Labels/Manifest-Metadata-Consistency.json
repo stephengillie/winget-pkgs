@@ -1,0 +1,21 @@
+{
+  "RuleName": "Label Manifest-Metadata-Consistency ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Manifest-Metadata-Consistency"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Completed"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "VerifyMMC"
+    }
+  ]
+}

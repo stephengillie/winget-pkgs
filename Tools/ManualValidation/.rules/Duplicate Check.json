@@ -1,0 +1,21 @@
+  {
+  "RuleName": "Duplicate Check",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Completed"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Possible-Duplicate"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "DuplicateCheck"
+      }
+    ]
+  }

@@ -1,0 +1,26 @@
+{
+ "RuleName": "PushMePRWho SpecterShell Mozilla.Thunderbird",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Author",
+      "Comparison": "Equals",
+      "Value": "SpecterShell"
+    },
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Match",
+      "Value": "Mozilla.Thunderbird"
+    },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Moderator-Approved"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ApprovePR"
+    }
+  ]
+}

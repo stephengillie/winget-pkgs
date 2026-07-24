@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Open-Url-Failed ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Open-Url-Failed"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Open-Url-Failed"
+    }
+  ]
+}

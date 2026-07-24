@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver darktakayanagi.Achievement-Watcher ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "darktakayanagi.Achievement-Watcher"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.7"
+    }
+  ]
+}

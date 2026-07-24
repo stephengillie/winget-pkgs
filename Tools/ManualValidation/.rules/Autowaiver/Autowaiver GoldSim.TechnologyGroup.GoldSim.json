@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver GoldSim.TechnologyGroup.GoldSim ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "GoldSim.TechnologyGroup.GoldSim"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "29f47c9f939381a973ca-12e283108c711e866765bf13c6d170c2.ssl.cf1.rackcdn.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Domain"
+    }
+  ]
+}

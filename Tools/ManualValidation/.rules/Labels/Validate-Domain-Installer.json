@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validate-Domain-Installer ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validate-Domain-Installer"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validate-Domain-Installer"
+    }
+  ]
+}

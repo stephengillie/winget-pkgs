@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Changes-Requested ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Changes-Requested"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Changes-Requested"
+    }
+  ]
+}

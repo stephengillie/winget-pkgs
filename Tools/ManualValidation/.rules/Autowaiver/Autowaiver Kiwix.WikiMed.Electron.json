@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver Kiwix.WikiMed.Electron ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Kiwix.WikiMed.Electron"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Possible-Duplicate"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Possible-Duplicate"
+    }
+  ]
+}

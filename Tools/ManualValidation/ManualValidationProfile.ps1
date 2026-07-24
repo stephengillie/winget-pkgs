@@ -1,5 +1,5 @@
 $VM = 0
-$build = 149
+$build = 150
 $ipconfig = (ipconfig)
 $remoteIP = ([ipaddress](($ipconfig | select-string "Default Gateway") -split ": ")[1]).IPAddressToString
 #$remoteIP = ([ipaddress](($ipconfig[($ipconfig | select-string "vEthernet").LineNumber..$ipconfig.length] | select-string "IPv4 Address") -split ": ")[1]).IPAddressToString
@@ -137,7 +137,7 @@ $a | where {$_.displayname} | sort displayname -Unique
 #Clear event logs.
 
 # Commands
-$n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n;Write-Progress -Activity "Build latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1}; Get-NetAdapter|Disable-NetAdapter -confirm:$false;Get-NetAdapter|Enable-NetAdapter;sleep 30;Import-Module $Profile -Force;Import-Module $Profile -Force;cls;Write-Host "VM$VM with remoteIP $remoteIP version $build"; Get-TrackerVMSetStatus CheckpointReady; $n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n; Write-Progress -Activity "Run latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1};Write-Host "Waiting for Network...";Get-TrackerVMRunValidation
+$n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n;Write-Progress -Activity "Build latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1}; Get-NetAdapter|Disable-NetAdapter -confirm:$false;Get-NetAdapter|Enable-NetAdapter;sleep 30;Import-Module $Profile -Force;Import-Module $Profile -Force;cls;"Get-TrackerVMSetStatus" | clip;Write-Host "VM$VM with remoteIP $remoteIP version $build"; Get-TrackerVMSetStatus CheckpointReady; $n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n; Write-Progress -Activity "Run latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1};Write-Host "Waiting for Network...";Get-TrackerVMRunValidation
 
 
 # Reset display window

@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver OSGeo.QGIS_LTR ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "OSGeo.QGIS_LTR"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "URL-Validation-Error"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "qgis.org"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add URL-Validation-Error"
+    }
+  ]
+}

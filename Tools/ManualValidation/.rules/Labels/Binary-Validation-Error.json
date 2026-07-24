@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Binary-Validation-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Binary-Validation-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "GetLogFromCommitFile"
+    }
+  ]
+}

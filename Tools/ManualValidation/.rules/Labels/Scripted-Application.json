@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Scripted-Application ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Scripted-Application"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Scripted-Application"
+    }
+  ]
+}

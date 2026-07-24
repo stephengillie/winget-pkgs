@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Reboot ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Reboot"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Reboot"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Blocking-Issue ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Blocking-Issue"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Blocking-Issue"
+    }
+  ]
+}

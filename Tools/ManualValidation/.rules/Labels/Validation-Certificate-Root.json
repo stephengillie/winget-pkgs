@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Certificate-Root ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Certificate-Root"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Certificate-Root"
+    }
+  ]
+}

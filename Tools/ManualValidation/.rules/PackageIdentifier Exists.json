@@ -1,0 +1,21 @@
+  {
+  "RuleName": "PackageIdentifier Exists",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "New-Package"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "New-Manifest"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "CheckIfPackageIsNew"
+      }
+    ]
+  }

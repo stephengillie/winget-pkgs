@@ -1,0 +1,19 @@
+{
+  "RuleName": "Label Validation-Executable-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Executable-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "AutoValLog"
+    },
+    {
+      "Action": "RerunCheck"
+    }
+  ]
+}

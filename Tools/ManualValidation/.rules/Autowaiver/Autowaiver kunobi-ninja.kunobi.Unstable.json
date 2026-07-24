@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver kunobi-ninja.kunobi.Unstable ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "kunobi-ninja.kunobi.Unstable"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.5"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.5"
+    }
+  ]
+}

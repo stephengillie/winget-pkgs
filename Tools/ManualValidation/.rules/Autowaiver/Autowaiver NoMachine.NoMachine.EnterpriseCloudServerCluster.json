@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver NoMachine.NoMachine.EnterpriseCloudServerCluster ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "NoMachine.NoMachine.EnterpriseCloudServerCluster"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.5"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.5"
+    }
+  ]
+}

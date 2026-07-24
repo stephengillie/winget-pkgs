@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Project-File ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Project-File"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Project-File"
+    }
+  ]
+}

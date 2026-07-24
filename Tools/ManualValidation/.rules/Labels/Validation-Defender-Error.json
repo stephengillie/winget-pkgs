@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Defender-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Defender-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Defender-Error"
+    }
+  ]
+}

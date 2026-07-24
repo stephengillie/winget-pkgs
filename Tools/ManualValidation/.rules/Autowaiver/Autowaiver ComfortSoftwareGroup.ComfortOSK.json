@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver ComfortSoftwareGroup.ComfortOSK ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "ComfortSoftwareGroup.ComfortOSK"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-1.8"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-1.8"
+    }
+  ]
+}

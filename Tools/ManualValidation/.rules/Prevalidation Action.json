@@ -1,0 +1,136 @@
+  {
+  "RuleName": "Prevalidation Action",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Hardware"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Internal-Error-NoSupportedArchitectures"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Agreements"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "DriverInstall"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "License-Blocks-Install"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Network-Blocker"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Project-File"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Reboot"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Scripted-Application"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Blocking-Issue"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Internal-Error-Manifest"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-Defender-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Changes-Requested"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Needs-CLA"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "No-Recent-Activity"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Last-Version-Removal"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Highest-Version-Removal"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-Merge-Conflict"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Binary-Validation-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Unexpected-File"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-Certificate-Root"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Validation-SmartScreen-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Highest-Version-Remaining"
+      },
+      {
+        "Key": "PRLastStateFromComments",
+        "Comparison": "Equal",
+        "Value": "Prevalidation"
+      },
+      {
+        "Key": "PRLastCommentUsername",
+        "Comparison": "NotEqual",
+        "Value": "stephengillie"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "LabelAction"
+      }
+    ]
+  }

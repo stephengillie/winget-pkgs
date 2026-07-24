@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-SmartScreen-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-SmartScreen-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-SmartScreen-Error"
+    }
+  ]
+}
