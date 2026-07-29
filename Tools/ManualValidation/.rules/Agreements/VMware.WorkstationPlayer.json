@@ -1,0 +1,31 @@
+{
+  "RuleName": "Agreements VMware.WorkstationPlayer",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "VMware.WorkstationPlayer"
+    },
+    {
+      "Key": "AgreementUrl",
+      "Comparison": "NotEquals",
+      "Value": "https://docs.vmware.com/en/VMware-Workstation-Player/17.5/rn/vmware-workstation-175-player-release-notes/index.html"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data":  "Hi @`n`nThis package uses Agreements, but this manifest's AgreementsUrl doesn't match the AgreementsUrl on file: https://docs.vmware.com/en/VMware-Workstation-Player/17.5/rn/vmware-workstation-175-player-release-notes/index.html"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+    }
+  ]
+}

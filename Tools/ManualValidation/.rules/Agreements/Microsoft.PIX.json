@@ -1,0 +1,31 @@
+{
+  "RuleName": "Agreements Microsoft.PIX",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Microsoft.PIX"
+    },
+    {
+      "Key": "AgreementUrl",
+      "Comparison": "NotEquals",
+      "Value": "https://aka.ms/pix-eula-april2024"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data":  "Hi @sfreed141`n`nThis package uses Agreements, but this manifest's AgreementsUrl doesn't match the AgreementsUrl on file: https://aka.ms/pix-eula-april2024"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+    }
+  ]
+}

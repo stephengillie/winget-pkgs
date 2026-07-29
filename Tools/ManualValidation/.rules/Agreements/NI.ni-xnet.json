@@ -1,0 +1,31 @@
+{
+  "RuleName": "Agreements NI.ni-xnet",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "NI.ni-xnet"
+    },
+    {
+      "Key": "AgreementUrl",
+      "Comparison": "NotEquals",
+      "Value": "https://www.ni.com/content/dam/web/pdfs/legal/software_license_agreement_en.pdf"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data":  "Hi @lars-nvhgroup`n`nThis package uses Agreements, but this manifest's AgreementsUrl doesn't match the AgreementsUrl on file: https://www.ni.com/content/dam/web/pdfs/legal/software_license_agreement_en.pdf"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+    }
+  ]
+}

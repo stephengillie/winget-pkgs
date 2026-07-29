@@ -1,0 +1,24 @@
+{
+  "RuleName": "Label Highest-Version-Remaining ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Highest-Version-Remaining"
+    },
+    {
+      "Key": "PRCreatedDaysAgo",
+      "Comparison": "GreaterThan",
+      "Value": "7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "MergePR"
+    },
+    {
+      "Action": "Approved"
+    }
+  ]
+}

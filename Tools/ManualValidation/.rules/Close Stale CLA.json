@@ -1,0 +1,22 @@
+{
+  "RuleName": "Close Stale CLA ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Needs-CLA"
+    },
+    {
+      "Key": "PRLastCommentDaysAgo",
+      "Comparison": "GreaterThan",
+      "Value": "14"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "CloseWithReason",
+      "Data": "Stale"
+    }
+  ]
+}

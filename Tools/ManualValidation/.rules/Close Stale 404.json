@@ -1,0 +1,22 @@
+{
+  "RuleName": "Close Stale 404 ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-404-Error"
+    },
+    {
+      "Key": "PRLastCommentDaysAgo",
+      "Comparison": "GreaterThan",
+      "Value": "14"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "CloseWithReason",
+      "Data": "Stale"
+    }
+  ]
+}

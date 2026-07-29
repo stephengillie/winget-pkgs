@@ -1,0 +1,26 @@
+{
+ "RuleName": "PushMePRWho spectopo OpenJS.NodeJS",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Author",
+      "Comparison": "Equals",
+      "Value": "spectopo"
+      },
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Match",
+      "Value": "OpenJS.NodeJS"
+    },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
+        "Value": "Moderator-Approved"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Approved"
+    }
+  ]
+}

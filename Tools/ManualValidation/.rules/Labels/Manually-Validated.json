@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Manually-Validated ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Manually-Validated"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Manually-Validated"
+    }
+  ]
+}

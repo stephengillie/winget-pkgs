@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Hash-Verification-Failed ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Hash-Verification-Failed"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Hash-Verification-Failed"
+    }
+  ]
+}

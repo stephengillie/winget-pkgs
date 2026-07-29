@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Retry ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Retry"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Retry"
+    }
+  ]
+}

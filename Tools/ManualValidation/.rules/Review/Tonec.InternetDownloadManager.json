@@ -1,0 +1,26 @@
+  {
+  "RuleName": "Review Tonec.InternetDownloadManager",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "PackageIdentifier",
+        "Comparison": "Equals",
+        "Value": "TechPowerUp.GPU-Z"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "Adds patch versions as duplicates of the latest build version. https://github.com/microsoft/winget-pkgs/issues/128340"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+      }
+    ]
+  }

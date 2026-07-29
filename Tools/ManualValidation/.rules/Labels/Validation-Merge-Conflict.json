@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Merge-Conflict ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Merge-Conflict"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-Merge-Conflict"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-Installation-Error ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Installation-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "AutoValLog"
+    }
+  ]
+}

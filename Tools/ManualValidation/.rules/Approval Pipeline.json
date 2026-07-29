@@ -16,22 +16,15 @@
       "Key": "PackageIdentifier",
       "Comparison": "NotMatch",
       "Value": "ReviewList"
-    },
+    }
     {
       "Key": "ManifestContents",
       "Comparison": "NotMatch",
       "Value": "WordFilter"
     },
-    {
-      "Key": "DisplayVersion",
-      "Comparison": "NotEquals",
-      "Value": "PackageVersion"
-    },
-    {
-      "Key": "InstallerUrl",
-      "Comparison": "NotEquals",
-      "Value": "PackageVersion"
-    },
+
+
+
     {
       "Key": "ListingCount",
       "Comparison": "GreaterThan",
@@ -46,8 +39,11 @@
 
 
 
-
-
+      {
+      "Key": "PackageVersion",
+        "Comparison": "NotEquals",
+        "Value": "DisplayVersion"
+      },
       {
         "Key": "Labels",
         "Comparison": "NotMatch",

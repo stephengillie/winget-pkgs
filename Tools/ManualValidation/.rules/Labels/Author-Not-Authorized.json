@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Author-Not-Authorized ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Author-Not-Authorized"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Author-Not-Authorized"
+    }
+  ]
+}

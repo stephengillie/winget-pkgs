@@ -1,0 +1,22 @@
+  {
+  "RuleName": "Rerun VGNP",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Equals",
+        "Value": "New-Package Validation-Guide"
+      },
+      {
+        "Key": "PRLastCommentDaysAgo",
+        "Comparison": "GreaterThan",
+        "Value": "1"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "@wingetbot run"
+      }
+    ]
+  }

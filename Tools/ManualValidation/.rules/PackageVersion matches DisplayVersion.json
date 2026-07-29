@@ -1,0 +1,21 @@
+  {
+  "RuleName": "PackageVersion matches DisplayVersion",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "PackageVersion",
+        "Comparison": "Equals",
+        "Value": "DisplayVersion"
+      }
+    ],
+    "Actions": [
+      {
+      "Action": "ReplyToPR",
+      "Data": "Hi @Username`n`nThis manifest uses the same values for `DisplayVersion` and `PackageVersion`. This is not recommended, and the `DisplayVersion` should be removed."
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+      }
+    ]
+  }

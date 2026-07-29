@@ -1,0 +1,22 @@
+  {
+  "RuleName": "Rerun VGNM-IEDS",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Equals",
+        "Value": "New-Manifest Retry-1 Validation-Guide"
+      },
+      {
+        "Key": "PRLastCommentDaysAgo",
+        "Comparison": "GreaterThan",
+        "Value": "1"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "@wingetbot run"
+      }
+    ]
+  }

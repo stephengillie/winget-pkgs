@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Unexpected-File ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Unexpected-File"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Unexpected-File"
+    }
+  ]
+}

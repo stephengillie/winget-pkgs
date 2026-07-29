@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Agreements ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Agreements"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Agreements"
+    }
+  ]
+}

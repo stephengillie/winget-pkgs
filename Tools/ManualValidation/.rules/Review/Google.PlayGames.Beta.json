@@ -1,0 +1,31 @@
+  {
+  "RuleName": "Review Google.PlayGames.Beta",
+    "Schedule": "PRWatch",
+    "Conditions": [
+      {
+        "Key": "PackageIdentifier",
+        "Comparison": "Equals",
+        "Value": "Google.PlayGames.Beta"
+      },
+      {
+        "Key": "PackageVersion",
+        "Comparison": "GreaterThan",
+        "Value": "120.0.0000.0"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "Installs a version above 120.0.0000.0 which is actually Chrome."
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+      }
+    ]
+  }

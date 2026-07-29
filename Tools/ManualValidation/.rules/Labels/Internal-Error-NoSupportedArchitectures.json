@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Internal-Error-NoSupportedArchitectures ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Internal-Error-NoSupportedArchitectures"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Internal-Error-NoSupportedArchitectures"
+    }
+  ]
+}

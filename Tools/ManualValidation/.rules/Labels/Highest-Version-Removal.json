@@ -1,0 +1,24 @@
+{
+  "RuleName": "Label Highest-Version-Removal ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Highest-Version-Removal"
+    },
+    {
+      "Key": "PRCreatedDaysAgo",
+      "Comparison": "GreaterThan",
+      "Value": "7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "MergePR"
+    },
+    {
+      "Action": "Approved"
+    }
+  ]
+}

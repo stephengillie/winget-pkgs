@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label License-Blocks-Install ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "License-Blocks-Install"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "License-Blocks-Install"
+    }
+  ]
+}

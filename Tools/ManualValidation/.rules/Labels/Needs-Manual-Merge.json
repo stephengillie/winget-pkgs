@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Needs-Manual-Merge ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Needs-Manual-Merge"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Needs-Manual-Merge"
+    }
+  ]
+}

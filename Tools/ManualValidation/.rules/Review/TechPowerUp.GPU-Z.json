@@ -1,0 +1,26 @@
+  {
+  "RuleName": "Review TechPowerUp.GPU-Z",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "PackageIdentifier",
+        "Comparison": "Equals",
+        "Value": "TechPowerUp.GPU-Z"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "Don't process removals. Host only allows package manager user agents to download."
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+      }
+    ]
+  }

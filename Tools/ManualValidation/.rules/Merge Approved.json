@@ -20,6 +20,11 @@
       {
         "Key": "Labels",
         "Comparison": "NotMatch",
+        "Value": "Needs-CLA"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "NotMatch",
         "Value": "Highest-Version-Removal"
       },
       {

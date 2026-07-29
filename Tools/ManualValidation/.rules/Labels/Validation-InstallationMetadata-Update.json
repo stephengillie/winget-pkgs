@@ -1,0 +1,16 @@
+{
+  "RuleName": "Label Validation-InstallationMetadata-Update ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-InstallationMetadata-Update"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "Validation-InstallationMetadata-Update"
+    }
+  ]
+}
