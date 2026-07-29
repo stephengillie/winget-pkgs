@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver ast-grep.ast-grep ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "ast-grep.ast-grep"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Executable-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Executable-Error"
+    }
+  ]
+}
