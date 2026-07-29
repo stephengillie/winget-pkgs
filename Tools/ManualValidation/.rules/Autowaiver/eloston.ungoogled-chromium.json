@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver eloston.ungoogled-chromium ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "eloston.ungoogled-chromium"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-No-Executables"
+    }
+  ]
+}

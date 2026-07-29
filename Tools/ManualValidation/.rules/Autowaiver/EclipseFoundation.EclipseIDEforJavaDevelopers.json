@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver EclipseFoundation.EclipseIDEforJavaDevelopers ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "EclipseFoundation.EclipseIDEforJavaDevelopers"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "ftp.halifax.rwth-aachen.de"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-domain"
+    }
+  ]
+}

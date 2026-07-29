@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver ElectronCommunity.ElectronFiddle ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "ElectronCommunity.ElectronFiddle"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Forbidden-URL-Error"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "github.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Forbidden-URL-Error"
+    }
+  ]
+}

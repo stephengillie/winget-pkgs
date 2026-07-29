@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver Dynare.Dynare ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Dynare.Dynare"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "policy-Test-1.8"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add policy-Test-1.8"
+    }
+  ]
+}
