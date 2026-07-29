@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver zadjii.ObsidianNotesExtension ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "zadjii.ObsidianNotesExtension"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.7"
+    }
+  ]
+}
