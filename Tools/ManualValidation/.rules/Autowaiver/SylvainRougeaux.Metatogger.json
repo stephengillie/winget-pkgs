@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver SylvainRougeaux.Metatogger ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "SylvainRougeaux.Metatogger"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Shell-Execute"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Shell-Execute"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver Softplicity.TotalAudioConverter 3 ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Softplicity.TotalAudioConverter"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.8"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.8"
+    }
+  ]
+}
