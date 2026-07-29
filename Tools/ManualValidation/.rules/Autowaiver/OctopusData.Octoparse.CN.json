@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver OctopusData.Octoparse.CN ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "OctopusData.Octoparse.CN"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "validation-domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "download.bazhuayu.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add validation-domain"
+    }
+  ]
+}

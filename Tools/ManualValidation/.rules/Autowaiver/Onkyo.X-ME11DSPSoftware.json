@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver Onkyo.X-ME11DSPSoftware ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Onkyo.X-ME11DSPSoftware"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "cdn.shopify.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Domain"
+    }
+  ]
+}

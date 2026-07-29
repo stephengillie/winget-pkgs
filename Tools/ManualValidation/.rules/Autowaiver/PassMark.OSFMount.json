@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver PassMark.OSFMount ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "PassMark.OSFMount"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "www.osforensics.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Domain"
+    }
+  ]
+}

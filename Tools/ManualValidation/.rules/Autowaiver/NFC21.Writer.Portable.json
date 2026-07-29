@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver NFC21.Writer.Portable ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "NFC21.Writer.Portable"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "files.nfc-tag-shop.de"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Domain"
+    }
+  ]
+}

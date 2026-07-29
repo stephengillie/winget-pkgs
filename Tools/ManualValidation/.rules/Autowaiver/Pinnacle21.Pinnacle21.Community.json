@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver Pinnacle21.Pinnacle21.Community ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Pinnacle21.Pinnacle21.Community"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Domain"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "dthfq9xldm1jq.cloudfront.net"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Domain"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver NovationDMS.LaunchkeyMK4Cubase 2 ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "NovationDMS.LaunchkeyMK4Cubase"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-No-Executables"
+    }
+  ]
+}

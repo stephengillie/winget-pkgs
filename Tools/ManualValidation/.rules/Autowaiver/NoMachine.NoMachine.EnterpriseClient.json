@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver NoMachine.NoMachine.EnterpriseClient ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "NoMachine.NoMachine.EnterpriseClient"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.5"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.5"
+    }
+  ]
+}
