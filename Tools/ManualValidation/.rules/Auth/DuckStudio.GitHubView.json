@@ -1,0 +1,31 @@
+{
+  "RuleName": "Auth DuckStudio.GitHubView ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "DuckStudio.GitHubView"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "DuckDuckStudio"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @DuckDuckStudio`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

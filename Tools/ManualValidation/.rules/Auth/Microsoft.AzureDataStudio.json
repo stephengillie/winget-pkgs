@@ -1,0 +1,36 @@
+{
+  "RuleName": "Auth Microsoft.AzureDataStudio ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Microsoft.AzureDataStudio"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "erpett"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "Charles-Gagnon"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @erpett, @Charles-Gagnon`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

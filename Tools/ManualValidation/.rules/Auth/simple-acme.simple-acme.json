@@ -1,0 +1,31 @@
+{
+  "RuleName": "Auth simple-acme.simple-acme ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "simple-acme.simple-acme"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "WouterTinus"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @WouterTinus`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

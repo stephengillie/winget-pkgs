@@ -1,0 +1,31 @@
+{
+  "RuleName": "Auth WHTA.Tamara ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "WHTA.Tamara"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "lars-nvhgroup"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @lars-nvhgroup`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

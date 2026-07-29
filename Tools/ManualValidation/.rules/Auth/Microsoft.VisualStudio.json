@@ -1,0 +1,31 @@
+{
+  "RuleName": "Auth Microsoft.VisualStudio ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Microsoft.VisualStudio"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "edwardskrod"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @edwardskrod`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

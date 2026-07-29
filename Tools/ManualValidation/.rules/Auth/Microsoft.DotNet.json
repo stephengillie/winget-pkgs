@@ -1,0 +1,41 @@
+{
+  "RuleName": "Auth Microsoft.DotNet ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Match",
+      "Value": "Microsoft.DotNet"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "mthalman"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "dotnet-winget-bot"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "esrp-winget-prod"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @mthalman, @dotnet-winget-bot, @esrp-winget-prod`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

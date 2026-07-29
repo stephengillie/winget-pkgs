@@ -1,0 +1,41 @@
+{
+  "RuleName": "Auth Chocolatey.Chocolatey ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Chocolatey.Chocolatey"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "pauby"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "gep13"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "choco-bot"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @pauby, @gep13, @choco-bot`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

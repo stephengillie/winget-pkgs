@@ -1,0 +1,41 @@
+{
+  "RuleName": "Auth DuckStudio.FufuDevTools ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "DuckStudio.FufuDevTools"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "DuckDuckStudio"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "Luna-Grace"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "fjwxzde"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @DuckDuckStudio, @Luna-Grace, @fjwxzde`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}

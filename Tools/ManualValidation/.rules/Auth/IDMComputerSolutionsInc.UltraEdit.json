@@ -1,0 +1,36 @@
+{
+  "RuleName": "Auth IDMComputerSolutionsInc.UltraEdit ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "IDMComputerSolutionsInc.UltraEdit"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Review"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "jpickle-idera"
+    },
+    {
+      "Key": "Author",
+      "Comparison": "NotEquals",
+      "Value": "jmoerdyk"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "Hi @jpickle-idera, @jmoerdyk`n`nDo you approve of these changes?"
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Review"
+    }
+  ]
+}
