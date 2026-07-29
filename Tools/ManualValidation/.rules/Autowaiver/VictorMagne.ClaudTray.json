@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver VictorMagne.ClaudTray",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "VictorMagne.ClaudTray"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-1.2"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "store2.myviewboard.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-1.2"
+    }
+  ]
+}

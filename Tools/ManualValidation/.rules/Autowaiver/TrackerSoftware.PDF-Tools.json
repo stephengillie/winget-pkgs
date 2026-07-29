@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver TrackerSoftware.PDF-Tools ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "TrackerSoftware.PDF-Tools"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Possible-Duplicate"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Possible-Duplicate"
+    }
+  ]
+}
