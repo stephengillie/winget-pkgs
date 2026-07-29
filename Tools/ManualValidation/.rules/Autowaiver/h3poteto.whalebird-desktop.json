@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver h3poteto.whalebird-desktop ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "h3poteto.whalebird-desktop"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "URL-Validation-Error"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "github.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add URL-Validation-Error"
+    }
+  ]
+}

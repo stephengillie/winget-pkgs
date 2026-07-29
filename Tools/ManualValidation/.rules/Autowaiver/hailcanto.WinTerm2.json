@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver hailcanto.WinTerm2 ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "hailcanto.WinTerm2"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-1.2"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-1.2"
+    }
+  ]
+}
