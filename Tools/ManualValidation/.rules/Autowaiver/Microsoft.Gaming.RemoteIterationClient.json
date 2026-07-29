@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver Microsoft.Gaming.RemoteIterationClient ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "Microsoft.Gaming.RemoteIterationClient"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Agreement-Domain"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Agreement-Domain"
+    }
+  ]
+}
