@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver SaeraSoft.CaesiumCLT ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "SaeraSoft.CaesiumCLT"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.9"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.9"
+    }
+  ]
+}
