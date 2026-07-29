@@ -1,0 +1,27 @@
+{
+  "RuleName": "Autowaiver MAILPLUGInc.MAILPLUGMessengerDesktop ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "MAILPLUGInc.MAILPLUGMessengerDesktop"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "URL-Validation-Error"
+    },
+    {
+      "Key": "InstallerUrl",
+      "Comparison": "Equals",
+      "Value": "chat.mailplug.com"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add URL-Validation-Error"
+    }
+  ]
+}

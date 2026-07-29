@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver LinwoodCloud.Butterfly ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "LinwoodCloud.Butterfly"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-Executable-Error"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Validation-Executable-Error"
+    }
+  ]
+}

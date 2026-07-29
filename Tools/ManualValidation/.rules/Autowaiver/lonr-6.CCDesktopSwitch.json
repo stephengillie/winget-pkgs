@@ -1,0 +1,22 @@
+{
+  "RuleName": "Autowaiver lonr-6.CCDesktopSwitch ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "PackageIdentifier",
+      "Comparison": "Equals",
+      "Value": "lonr-6.CCDesktopSwitch"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Policy-Test-2.7"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "ReplyToPR",
+      "Data": "@wingetbot waivers Add Policy-Test-2.7"
+    }
+  ]
+}
