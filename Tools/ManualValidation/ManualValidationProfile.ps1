@@ -1,5 +1,5 @@
 $VM = 0
-$build = 150
+$build = 146
 $ipconfig = (ipconfig)
 $remoteIP = ([ipaddress](($ipconfig | select-string "Default Gateway") -split ": ")[1]).IPAddressToString
 #$remoteIP = ([ipaddress](($ipconfig[($ipconfig | select-string "vEthernet").LineNumber..$ipconfig.length] | select-string "IPv4 Address") -split ": ")[1]).IPAddressToString
@@ -18,30 +18,22 @@ $SharedFolder = $writeFolder
 if ($VM -eq 0) {
 	$VM = (gc "$MainFolder\vmcounter.txt")-1
 }
-$NewProfile = (Get-Content "\\$remoteIP\ManVal\vm\0\profile.ps1") -split "`n"
-if ($NewProfile) {
-	"`$VM = $VM" | Out-File $profile
-	($NewProfile[1..999]) -join "`n" | Out-File $profile -append
-}
+"`$VM = $VM" | Out-File $profile
+(Get-Content "\\$remoteIP\ManVal\vm\0\profile.ps1")[1..999] | Out-File $profile -append
 
 Function Send-SharedError {
 	param(
 		[switch]$Approved,
-		[switch]$Feedback,
 		$Clip = (Get-Clipboard)
 	)
 	if ($Clip.length -gt 0) {
 		Write-Host "Writing $($Clip.length) lines."
 		$Clip -join "`n" | Out-File "$writeFolder\err.txt"
-		if ($Feedback) {
-			Get-TrackerVMSetStatus "SendStatus-Feedback"
+		if ($Approved) {
+			Get-TrackerVMSetStatus "SendStatus-Approved"
 		}  else {
-			if ($Approved) {
-				Get-TrackerVMSetStatus "SendStatus-Approved"
-			}  else {
-				Get-TrackerVMSetStatus "SendStatus-Complete"
-			} #end if Approved
-		} #end if Feedback
+			Get-TrackerVMSetStatus "SendStatus-Complete"
+		} #end if Approved
 	}
 }
 
@@ -137,7 +129,7 @@ $a | where {$_.displayname} | sort displayname -Unique
 #Clear event logs.
 
 # Commands
-$n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n;Write-Progress -Activity "Build latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1}; Get-NetAdapter|Disable-NetAdapter -confirm:$false;Get-NetAdapter|Enable-NetAdapter;sleep 30;Import-Module $Profile -Force;Import-Module $Profile -Force;cls;"Get-TrackerVMSetStatus" | clip;Write-Host "VM$VM with remoteIP $remoteIP version $build"; Get-TrackerVMSetStatus CheckpointReady; $n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n; Write-Progress -Activity "Run latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1};Write-Host "Waiting for Network...";Get-TrackerVMRunValidation
+$n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n;Write-Progress -Activity "Build latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1}; Get-NetAdapter|Disable-NetAdapter -confirm:$false;Get-NetAdapter|Enable-NetAdapter;sleep 30;Import-Module $Profile -Force;Import-Module $Profile -Force;cls;Write-Host "VM$VM with remoteIP $remoteIP version $build"; Get-TrackerVMSetStatus CheckpointReady; $n = 15;$t = $n;while ($n -gt 0) {$n--;$r = $t - $n; Write-Progress -Activity "Run latch" -Status "Seconds remaining: $r/$t" -PercentComplete ((1-$n/$t)*100);sleep 1};Write-Host "Waiting for Network...";Get-TrackerVMRunValidation
 
 
 # Reset display window
