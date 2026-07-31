@@ -1,0 +1,26 @@
+  {
+  "RuleName": "Approve VNE",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-No-Executables"
+      },
+      {
+        "Key": "PRComments",
+        "Comparison": "Match",
+        "Value": "wingetbot waivers Add Validation-No-Executables"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "RemoveLabel",
+        "Data": "Validation-No-Executables"
+      },
+      {
+        "Action": "AddLabel",
+        "Data": "Validation-Completed"
+      }
+    ]
+  }

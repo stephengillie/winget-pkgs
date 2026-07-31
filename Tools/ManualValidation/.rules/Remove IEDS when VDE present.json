@@ -1,0 +1,22 @@
+  {
+  "RuleName": "Remove IEDS when VDE present",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Defender-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Internal-Error-Dynamic-Scan"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "RemoveLabel",
+        "Data": "Internal-Error-Dynamic-Scan"
+      }
+    ]
+  }

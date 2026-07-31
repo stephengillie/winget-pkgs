@@ -1,0 +1,22 @@
+  {
+  "RuleName": "Remove VIE when VDE present",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Defender-Error"
+      },
+      {
+        "Key": "Labels",
+        "Comparison": "Match",
+        "Value": "Validation-Installation-Error"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "RemoveLabel",
+        "Data": "Validation-Installation-Error"
+      }
+    ]
+  }

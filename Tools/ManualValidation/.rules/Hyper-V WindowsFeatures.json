@@ -1,0 +1,26 @@
+  {
+  "RuleName": "Hyper-V WindowsFeatures",
+    "Schedule": "PRWatch",
+    "Conditions": [
+      {
+        "Key": "WindowsFeatures",
+        "Comparison": "Match",
+        "Value": "Microsoft-Hyper-V"
+      },
+      {
+      "Key": "Labels",
+      "Comparison": "NotMatch",
+      "Value": "Needs-Author-Feedback"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "The `Microsoft-Hyper-V` feature isn't currently supported in the validation pipelines. Please see [this Issue](https://github.com/microsoft/winget-pkgs/issues/396952) for more information."
+      },
+      {
+      "Action": "AddLabel",
+      "Data": "Needs-Author-Feedback"
+      }
+    ]
+  }

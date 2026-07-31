@@ -1,0 +1,24 @@
+  {
+  "RuleName": "Merge Automatic Waiver Addition",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "Title",
+        "Comparison": "Match",
+        "Value": "Automatic Waiver Addition for PR"
+      },
+      {
+        "Key": "Author",
+        "Comparison": "Match",
+        "Value": "wingetbot"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "Approved"
+      },
+      {
+        "Action": "MergePR"
+      }
+    ]
+  }

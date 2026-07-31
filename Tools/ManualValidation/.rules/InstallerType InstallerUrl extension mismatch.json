@@ -1,0 +1,22 @@
+  {
+  "RuleName": "InstallerType InstallerUrl extension mismatch",
+    "Schedule": "Hourly",
+    "Conditions": [
+      {
+        "Key": "InstallerType",
+        "Comparison": "Equals",
+        "Value": "zip"
+      },
+      {
+        "Key": "InstallerUrl",
+        "Comparison": "NotMatch",
+        "Value": "zip"
+      }
+    ],
+    "Actions": [
+      {
+        "Action": "ReplyToPR",
+        "Data": "Hi @Username, `n`nThe InstallerType is `zip` but the InstallerUrl has a different extension. Is this intentional?"
+      }
+    ]
+  }

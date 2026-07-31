@@ -1,0 +1,22 @@
+{
+  "RuleName": "Close Stale Changes-Requested ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Changes-Requested"
+    },
+    {
+      "Key": "PRLastCommentDaysAgo",
+      "Comparison": "GreaterThan",
+      "Value": "14"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "CloseWithReason",
+      "Data": "Stale"
+    }
+  ]
+}

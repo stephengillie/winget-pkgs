@@ -1,0 +1,22 @@
+{
+  "RuleName": "VNE Shove ",
+  "Schedule": "Hourly",
+  "Conditions": [
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Validation-No-Executables"
+    },
+    {
+      "Key": "Labels",
+      "Comparison": "Match",
+      "Value": "Waived-Validation-No-Executables"
+    }
+  ],
+  "Actions": [
+    {
+      "Action": "RemoveLabel",
+      "Data": "Validation-No-Executables"
+    }
+  ]
+}
